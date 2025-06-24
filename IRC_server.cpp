@@ -1,5 +1,11 @@
 #include "IRC_server.hpp"
 
+#ifdef __linux__
+# include "EpollLoop.hpp"
+#elif defined(__APPLE__)
+# include "PollLoop.hpp"
+#endif
+
 Server::Server(int port, const std::string& password) : _port(port), _password(password), _serverS()//why -1?
 {
 	setupSocket();
@@ -46,20 +52,39 @@ void Server::setupSocket()
 
 void Server::start()
 {
-	while (true)
-	{
-		int ret = poll(&_pollFds[0], _pollFds.size(), -1);
-		if (ret < 0)
-			throw std::runtime_error("poll() failed");
+	#ifdef __linux__
+    EpollEventLoop eventLoop;
+#elif defined(__APPLE__)
+    PollEventLoop eventLoop;
+#endif
 
-		for (size_t i = 0; i < _pollFds.size(); ++i)
-		{
-			if (_pollFds[i].fd == _serverS.fd_socket && (_pollFds[i].revents & POLLIN))
-			{
-				acceptNewClient();
-			}
-		}
-	}
+eventLoop.setup(_serverS.fd_socket);
+
+while (true) {
+    int ready = eventLoop.wait();
+    for (int i = 0; i < ready; ++i) {
+        int fd = eventLoop.getReadyFd(i);
+        if (fd == _serverS.fd_socket) {
+            acceptNewClient();
+        } else {
+            // You can later add client read handling here
+        }
+    }
+}
+	// while (true)
+	// {
+	// 	int ret = poll(&_pollFds[0], _pollFds.size(), -1);
+	// 	if (ret < 0)
+	// 		throw std::runtime_error("poll() failed");
+
+	// 	for (size_t i = 0; i < _pollFds.size(); ++i)
+	// 	{
+	// 		if (_pollFds[i].fd == _serverS.fd_socket && (_pollFds[i].revents & POLLIN))
+	// 		{
+	// 			acceptNewClient();
+	// 		}
+	// 	}
+	// }
 }
 
 void Server::acceptNewClient()

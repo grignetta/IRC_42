@@ -1,0 +1,19 @@
+#ifndef EPOLLLOOP_HPP
+#define EPOLLLOOP_HPP
+
+#include "IEventLoop.hpp"
+#include <sys/epoll.h>
+
+class EpollEventLoop : public IEventLoop
+{
+private:
+	int _epollFd;
+	epoll_event _events[64];
+
+public:
+	void setup(int serverFd);
+	int wait();
+	int getReadyFd(int index) const;
+};
+
+#endif
