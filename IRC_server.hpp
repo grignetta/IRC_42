@@ -14,6 +14,11 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 
+#include <cerrno>   // for errno
+#include <cstring>  // for strerror
+
+//#include "OverrExc.hpp"
+
 // int poll(struct pollfd *fds, nfds_t nfds, int timeout);
 
 // struct pollfd {
@@ -22,15 +27,16 @@
 // 	short revents;    /* returned events */
 // };
 
-#include <exception>
-//#include <string>
+
+#include <string>
 
 class SocketException : public std::exception
 {
 		std::string _msg;
 	public:
 		SocketException(const std::string& msg) : _msg(msg) {}
-		virtual const char* what() const throw()
+		virtual ~SocketException() throw() {} //why didn't have it in other CPPs
+		virtual const char* what() const throw()//why vertual?
 		{
 			return _msg.c_str();
 		}
@@ -38,6 +44,7 @@ class SocketException : public std::exception
 
 struct Socket
 {
+	Socket() throw();
 	int fd_socket;
 	int socket_opt;
 	sockaddr_in socket_addr;
@@ -47,15 +54,15 @@ class Server
 {
 	public:
 		Server(int port, const std::string& password);
-		~Server();	
+		~Server();
 
-		void start();	
+		void start();
 
 	private:
 		int _port;
 		std::string _password;
 		Socket _serverS;
-		std::vector<pollfd> _pollFds;	
+		std::vector<pollfd> _pollFds;
 
 		void setupSocket();
 		//void bindAndListen();
