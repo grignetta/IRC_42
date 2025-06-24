@@ -1,7 +1,5 @@
 #include "IRC_server.hpp"
 
-Socket::Socket() throw() : fd_socket(-1), socket_opt(1), socket_addr() {}
-
 Server::Server(int port, const std::string& password) : _port(port), _password(password), _serverS()//why -1?
 {
 	setupSocket();
