@@ -16,6 +16,7 @@ int main(int argc, char** argv)
 	{
 		Server server(port, password);
 		server.start();
+		std::cout << "Server listening on port " << server.getPort() << std::endl;
 	}
 	catch (const std::exception& e)
 	{

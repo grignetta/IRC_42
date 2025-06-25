@@ -5,7 +5,6 @@
 #include <cstring>  // for strerror
 #include <exception> // for std::exception
 #include <string>   // for std::string
-//#include <stdexcept> // for std::runtime_error
 
 class SocketException : public std::exception
 {

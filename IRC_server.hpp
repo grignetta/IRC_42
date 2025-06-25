@@ -12,23 +12,10 @@
 #include <cstring>
 #include <cstdlib>
 #include <unistd.h>
-//#include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <fcntl.h>
-
-
-
-//#include "OverrExc.hpp"
-
-// int poll(struct pollfd *fds, nfds_t nfds, int timeout);
-
-// struct pollfd {
-// 	int   fd;         /* file descriptor */
-// 	short events;     /* requested events */
-// 	short revents;    /* returned events */
-// };
-
 
 class Server
 {
@@ -37,6 +24,7 @@ class Server
 		~Server();
 
 		void start();
+		int getPort() const;
 
 	private:
 		int _port;
@@ -45,7 +33,6 @@ class Server
 		std::vector<pollfd> _pollFds;
 
 		void setupSocket();
-		//void bindAndListen();
 		void acceptNewClient();
 };
 
