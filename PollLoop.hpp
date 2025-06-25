@@ -7,13 +7,13 @@
 
 class PollEventLoop : public IEventLoop
 {
-private:
-	std::vector<pollfd> _pollFds;
+	public:
+		void setup(int serverFd);
+		int wait();
+		int getReadyFd(int index) const;
+	private:
+		std::vector<pollfd> _pollFds;
 
-public:
-	void setup(int serverFd);
-	int wait();
-	int getReadyFd(int index) const;
 };
 
 #endif

@@ -8,7 +8,6 @@
 
 class SocketException : public std::exception
 {
-		std::string _msg;
 	public:
 		SocketException(const std::string& msg) : _msg(msg) {}
 		virtual ~SocketException() throw() {} //why didn't have it in other CPPs
@@ -16,6 +15,8 @@ class SocketException : public std::exception
 		{
 			return _msg.c_str();
 		}
+	private:
+		std::string _msg;
 };
 
 #endif

@@ -37,29 +37,35 @@ void Server::setupSocket()
 	if (listen(_serverS.fd_socket, 10) < 0)
 		throw SocketException(std::string("Failed to listen: ") + strerror(errno));
 
-	fcntl(_serverS.fd_socket, F_SETFL, O_NONBLOCK);
+	fcntl(_serverS.fd_socket, F_SETFL, O_NONBLOCK);// Set the server socket to non-blocking mode
+	std::cout << "Socket setup complete, listening on port " << _port << std::endl;
 }
 
 void Server::start()
 {
 	#ifdef __linux__
-    EpollEventLoop eventLoop;
-#elif defined(__APPLE__)
-    PollEventLoop eventLoop;
-#endif
+		EpollEventLoop eventLoop;
+	#elif defined(__APPLE__)
+		PollEventLoop eventLoop;
+	#endif
 
-eventLoop.setup(_serverS.fd_socket);
+	eventLoop.setup(_serverS.fd_socket);
 
-while (true) {
-    int ready = eventLoop.wait();
-    for (int i = 0; i < ready; ++i) {
-        int fd = eventLoop.getReadyFd(i);
-        if (fd == _serverS.fd_socket) {
-            acceptNewClient();
-        } else {
-            // You can later add client read handling here
-        }
-    }
+	while (1)
+	{
+		int ready = eventLoop.wait();
+		for (int i = 0; i < ready; ++i)
+		{
+			int fd = eventLoop.getReadyFd(i);
+			if (fd == _serverS.fd_socket)
+			{
+				acceptNewClient();
+			}
+			else
+			{
+				// You can later add client read handling here
+			}
+		}
 }
 }
 
@@ -72,8 +78,8 @@ void Server::acceptNewClient()
 		std::cerr << "Failed to accept new connection" << std::endl;
 		return;
 	}
-
-	fcntl(clientSocket, F_SETFL, O_NONBLOCK);
+	fcntl(clientSocket, F_SETFL, O_NONBLOCK);// Set the client socket to non-blocking mode
+	std::cout << "Accepted new client connection" << std::endl;
 }
 
 int Server::getPort() const

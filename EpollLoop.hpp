@@ -6,14 +6,13 @@
 
 class EpollEventLoop : public IEventLoop
 {
-private:
-	int _epollFd;
-	epoll_event _events[64];
-
-public:
-	void setup(int serverFd);
-	int wait();
-	int getReadyFd(int index) const;
+	public:
+		void setup(int serverFd);
+		int wait();
+		int getReadyFd(int index) const;
+	private:
+		int _epollFd;
+		epoll_event _events[64];//why  64 only?
 };
 
 #endif
