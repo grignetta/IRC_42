@@ -4,7 +4,7 @@
 
 void EpollEventLoop::setup(int serverFd)
 {
-	_epollFd = epoll_create1(0);
+	_epollFd = epoll_create1(0);// 0 means no special flags
 	if (_epollFd == -1)
 		throw SocketException(std::string("epoll_create1 failed: ") + strerror(errno));
 	epoll_event ev;
@@ -16,7 +16,7 @@ void EpollEventLoop::setup(int serverFd)
 
 int EpollEventLoop::wait()
 {
-	return epoll_wait(_epollFd, _events, 64, -1);
+	return epoll_wait(_epollFd, _events, MAX_EVENTS, -1);
 }
 
 int EpollEventLoop::getReadyFd(int index) const

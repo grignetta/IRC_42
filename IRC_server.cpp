@@ -56,7 +56,7 @@ void Server::start()
 		int ready = eventLoop.wait();
 		for (int i = 0; i < ready; ++i)
 		{
-			int fd = eventLoop.getReadyFd(i);
+			int fd = eventLoop.getReadyFd(i);//_pollFds[index].fd or _events[index].data.fd;
 			if (fd == _serverS.fd_socket)
 			{
 				acceptNewClient();
