@@ -1,0 +1,21 @@
+- add set container to keep all fds and clean them at exit (ctrl+c) or any error
+- create clean funtion
+- handle sygnals (ctrl+C, ctrl+D)
+- add control of wait function in both epoll and poll
+- code action handlers (throuh enum?)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

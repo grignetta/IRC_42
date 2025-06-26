@@ -16,7 +16,7 @@ void EpollEventLoop::setup(int serverFd)
 
 int EpollEventLoop::wait()
 {
-	return epoll_wait(_epollFd, _events, MAX_EVENTS, -1);
+	return epoll_wait(_epollFd, _events, MAX_EVENTS, -1);//returns the number of file descriptors ready for reading
 }
 
 int EpollEventLoop::getReadyFd(int index) const

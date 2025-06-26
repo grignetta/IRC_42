@@ -53,11 +53,13 @@ void Server::start()
 
 	while (1)
 	{
-		int ready = eventLoop.wait();
+		int ready = eventLoop.wait();//epoll_wait() fills up to ready entries in your events[] array
+		if (ready < 0)
+			return cleanAndExit();
 		for (int i = 0; i < ready; ++i)
 		{
 			int fd = eventLoop.getReadyFd(i);//_pollFds[index].fd or _events[index].data.fd;
-			if (fd == _serverS.fd_socket)
+			if (fd == _serverS.fd_socket)// = Is this event from the main server socket (meaning a new client)?
 			{
 				acceptNewClient();
 			}
