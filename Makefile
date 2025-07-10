@@ -9,7 +9,8 @@ SRC = main.cpp \
 		IRC_server.cpp \
 		Socket.cpp \
 		EpollLoop.cpp \
-		PollLoop.cpp
+		PollLoop.cpp \
+		Signals.cpp
 OBJ = $(SRC:.cpp=.o)
 
 all: $(NAME)

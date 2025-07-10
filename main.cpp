@@ -8,6 +8,8 @@ int main(int argc, char** argv)
 		std::cerr << "Usage: ./ircserv <port> <password>" << std::endl;
 		return 1;
 	}
+	
+	setupSignalHandlers();
 
 	int port = std::atoi(argv[1]);//is there cpp version?
 	std::string password = argv[2];

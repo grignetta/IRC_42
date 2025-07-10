@@ -1,8 +1,9 @@
 - add set container to keep all fds and clean them at exit (ctrl+c) or any error
-- create clean funtion
+- create clean funtion - no needed, done througt destructor
 - handle sygnals (ctrl+C, ctrl+D)
-- add control of wait function in both epoll and poll
+- add control of wait function in both epoll and poll - done
 - code action handlers (throuh enum?)
+- protect functions
 
 
 

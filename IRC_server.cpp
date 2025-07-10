@@ -1,9 +1,9 @@
 #include "IRC_server.hpp"
 
 #ifdef __linux__
-# include "EpollLoop.hpp"
+#include "EpollLoop.hpp"
 #elif defined(__APPLE__)
-# include "PollLoop.hpp"
+#include "PollLoop.hpp"
 #endif
 
 Server::Server(int port, const std::string& password) : _port(port), _password(password), _serverS()//why -1?
@@ -15,7 +15,12 @@ Server::Server(int port, const std::string& password) : _port(port), _password(p
 Server::~Server()
 {
 	if (_serverS.fd_socket != -1)
+	{
+		for (std::set<int>::iterator it = _clientFds.begin(); it != _clientFds.end(); ++it)
+		close(*it);
 		close(_serverS.fd_socket);
+		std::cerr << "Server cleaned up.\n";
+	}
 }
 
 void Server::setupSocket()
@@ -51,21 +56,21 @@ void Server::start()
 
 	eventLoop.setup(_serverS.fd_socket);
 
-	while (1)
+	while (!g_signal)
 	{
 		int ready = eventLoop.wait();//epoll_wait() fills up to ready entries in your events[] array
 		if (ready < 0)
-			return cleanAndExit();
+			return ;
 		for (int i = 0; i < ready; ++i)
 		{
 			int fd = eventLoop.getReadyFd(i);//_pollFds[index].fd or _events[index].data.fd;
-			if (fd == _serverS.fd_socket)// = Is this event from the main server socket (meaning a new client)?
+			if (fd == _serverS.fd_socket)// = Is this event from the main server socket (meaning a new client)
 			{
 				acceptNewClient();
 			}
 			else
 			{
-				// You can later add client read handling here
+				// add client read handling here
 			}
 		}
 }
@@ -82,9 +87,16 @@ void Server::acceptNewClient()
 	}
 	fcntl(clientSocket, F_SETFL, O_NONBLOCK);// Set the client socket to non-blocking mode
 	std::cout << "Accepted new client connection" << std::endl;
+	_clientFds.insert(clientSocket);//delete when client disconnects
 }
 
 int Server::getPort() const
 {
 	return _port;
+}
+
+void Server::removeClient(int fd)
+{
+	_clientFds.erase(fd);
+	close(fd);
 }

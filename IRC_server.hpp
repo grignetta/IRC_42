@@ -3,10 +3,12 @@
 
 #include "Socket.hpp"
 #include "Exception.hpp"
+#include "Signals.hpp"
 
 #include <string>
 #include <vector>
 #include <poll.h>
+#include <set>
 
 #include <iostream>
 #include <cstring>
@@ -31,9 +33,11 @@ class Server
 		std::string _password;
 		Socket _serverS;
 		std::vector<pollfd> _pollFds;
+		std::set<int> _clientFds;
 
 		void setupSocket();
 		void acceptNewClient();
+		void removeClient(int clientFd);
 };
 
 #endif

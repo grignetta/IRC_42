@@ -1,14 +1,21 @@
 #ifndef EPOLLLOOP_HPP
-#define EPOLLLOOP_HPP
+# define EPOLLLOOP_HPP
 
-#include "IEventLoop.hpp"
-#include <sys/epoll.h>
+# ifdef __linux__
+# include "IEventLoop.hpp"
 
-#define MAX_EVENTS 256
+# include <sys/epoll.h>
+
+
+//#include <sys/epoll.h>
+
+# define MAX_EVENTS 256
 
 class EpollEventLoop : public IEventLoop
 {
 	public:
+		EpollEventLoop();
+		~EpollEventLoop();
 		void setup(int serverFd);
 		int wait();
 		int getReadyFd(int index) const;
@@ -17,6 +24,7 @@ class EpollEventLoop : public IEventLoop
 		epoll_event _events[MAX_EVENTS];//array of structs
 };
 
+# endif
 #endif
 
 // #include <sys/epoll.h>

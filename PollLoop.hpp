@@ -1,9 +1,10 @@
 #ifndef POLLLOOP_HPP
-#define POLLLOOP_HPP
+# define POLLLOOP_HPP
 
-#include "IEventLoop.hpp"
-#include <vector>
-#include <poll.h>
+# ifdef __APPLE__
+# include "IEventLoop.hpp"
+# include <vector>
+# include <poll.h>
 
 class PollEventLoop : public IEventLoop
 {
@@ -16,4 +17,5 @@ class PollEventLoop : public IEventLoop
 
 };
 
+# endif
 #endif

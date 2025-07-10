@@ -1,6 +1,16 @@
+# ifdef __linux__
+
 #include "EpollLoop.hpp"
 #include <stdexcept>
 #include <unistd.h>
+
+EpollEventLoop() : _epollFd(-1) {}
+
+EpollEventLoop::~EpollEventLoop()
+{
+	if (_epollFd != -1)
+		close(_epollFd);
+}
 
 void EpollEventLoop::setup(int serverFd)
 {
@@ -23,3 +33,5 @@ int EpollEventLoop::getReadyFd(int index) const
 {
 	return _events[index].data.fd;
 }
+
+#endif
