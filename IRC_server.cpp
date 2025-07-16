@@ -16,9 +16,12 @@ Server::~Server()
 {
 	if (_serverS.fd_socket != -1)
 	{
-		for (std::set<int>::iterator it = _clientFds.begin(); it != _clientFds.end(); ++it)
-		close(*it);
-		close(_serverS.fd_socket);
+		//for (std::set<int>::iterator it = _clientFds.begin(); it != _clientFds.end(); ++it)
+		//close(*it);
+		//close(_serverS.fd_socket);
+		for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+			close(it->first); // the FD
+		_clients.clear();
 		std::cerr << "Server cleaned up.\n";
 	}
 }
@@ -42,7 +45,7 @@ void Server::setupSocket()
 	if (listen(_serverS.fd_socket, 10) < 0)
 		throw SocketException(std::string("Failed to listen: ") + strerror(errno));
 
-	fcntl(_serverS.fd_socket, F_SETFL, O_NONBLOCK);// Set the server socket to non-blocking mode
+	fcntl(_serverS.fd_socket, F_SETFL, O_NONBLOCK);// Set the server socket to non-blocking mode// should be changed to write as per subjedt?
 	std::cout << "Socket setup complete, listening on port " << _port << std::endl;
 }
 
@@ -70,7 +73,7 @@ void Server::start()
 			}
 			else
 			{
-				// add client read handling here
+				handleClientMsg(fd);
 			}
 		}
 }
@@ -85,9 +88,10 @@ void Server::acceptNewClient()
 		std::cerr << "Failed to accept new connection" << std::endl;
 		return;
 	}
-	fcntl(clientSocket, F_SETFL, O_NONBLOCK);// Set the client socket to non-blocking mode
+	fcntl(clientSocket, F_SETFL, O_NONBLOCK);// Set the client socket to non-blocking mode// should be changed to write as per subjedt?
 	std::cout << "Accepted new client connection" << std::endl;
-	_clientFds.insert(clientSocket);//delete when client disconnects
+	_clients[clientSocket] = Client(clientSocket);
+	//_clientFds.insert(clientSocket);//delete when client disconnects
 }
 
 int Server::getPort() const
@@ -95,8 +99,65 @@ int Server::getPort() const
 	return _port;
 }
 
-void Server::removeClient(int fd)
+void Server::handleClientMsg(int fd)
 {
-	_clientFds.erase(fd);
-	close(fd);
+	char buffer[BUFFER_SIZE]; // probably maloc it and make stretchable?
+	ssize_t bytes = recv(fd, buffer, sizeof(buffer) - 1, 0);
+	if (bytes <= 0)
+	{
+		//disconnectClient(fd); // EOF or error
+		return;
+	}
+	buffer[bytes] = '\0';
+	Client& client = _clients[fd];
+	client.appendToBuffer(buffer);
+
+	std::string& buf = client.getBuffer();
+	size_t pos;
+	while ((pos = buf.find("\r\n")) != std::string::npos)
+	{
+		std::string line = buf.substr(0, pos);
+		buf.erase(0, pos + 2); // remove processed line
+		parseAndExecCmd(fd, line); // NEXT STEP
+	}
 }
+
+void Server::parseAndExecCmd(int fd, const std::string& line)
+{
+	std::istringstream iss(line);
+	std::string command;
+	iss >> command;
+	
+	std::transform(command.begin(), command.end(), command.begin(), ::toupper);
+
+	if (command == "NICK")
+		handleNick(fd, iss);
+	else if (command == "USER")
+		handleUser(fd, iss);
+	//else if (command == "PASS") - not sure it's neeeded
+	//handlePass(fd, iss);
+	else if (command == "PRIVMSG")
+		handlePrivMsg(fd, iss);
+	else if (command == "JOIN")
+		handleJoin(fd, iss);
+	else if (command == "PART")
+		handlePart(fd, iss);
+	else if (command == "KICK")
+		handleKick(fd, iss);
+	else if (command == "QUIT")
+		handleQuit(fd, iss);
+	else if (command == "INVITE")
+		handleInvite(fd, iss);
+	else if (command == "TOPIC")
+		handleTopic(fd, iss);
+	else if (command == "MODE")
+		handleMode(fd, iss);
+	else
+		sendMessage(fd, "421 " + command + " :Unknown command\r\n");
+}
+
+// void Server::removeClient(int fd)
+// {
+// 	_clientFds.erase(fd);
+// 	close(fd);
+// }

@@ -1,4 +1,4 @@
-- add set container to keep all fds and clean them at exit (ctrl+c) or any error
+- add set container to keep all fds and clean them at exit (ctrl+c) or any error -> changing to map to hold fds + all the infos about clients
 - create clean funtion - no needed, done througt destructor
 - handle sygnals (ctrl+C, ctrl+D)
 - add control of wait function in both epoll and poll - done
