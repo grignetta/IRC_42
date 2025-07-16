@@ -1,4 +1,5 @@
 #include "IRC_server.hpp"
+#include <algorithm>
 
 #ifdef __linux__
 #include "EpollLoop.hpp"
@@ -271,6 +272,16 @@ void Server::sendNumeric(int fd, int code, const std::string& target, const std:
 	oss << code << " " << target << " :" << message << "\r\n";
 	sendMsg(fd, oss.str());
 }
+
+void Server::handlePrivMsg(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
+void Server::handleJoin(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
+void Server::handlePart(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
+void Server::handleKick(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
+void Server::handleQuit(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
+void Server::handleInvite(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
+void Server::handleTopic(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
+void Server::handleMode(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
+void Server::sendMessage(int fd, const std::string&iss){(void)fd; std::cout<<iss;}
 
 
 // void Server::removeClient(int fd)

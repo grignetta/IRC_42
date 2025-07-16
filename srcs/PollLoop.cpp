@@ -1,5 +1,6 @@
 #include "PollLoop.hpp"
 
+# ifdef __APPLE__
 void PollEventLoop::setup(int serverFd)
 {
 	pollfd pfd;
@@ -17,3 +18,4 @@ int PollEventLoop::getReadyFd(int index) const
 {
 	return _pollFds[index].fd;
 }
+#endif

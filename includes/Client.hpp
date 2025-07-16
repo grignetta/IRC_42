@@ -6,6 +6,7 @@
 class Client
 {
 	public:
+		Client(){}
 		Client(int fd);
 		int getFd() const;
 		

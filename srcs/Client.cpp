@@ -1,6 +1,11 @@
 #include "Client.hpp"
 
-Client::Client(int fd) : _fd(fd), _registered(false), _operator(false), _passApv(false) {}
+Client::Client(int fd)
+  : _fd(fd)
+  , _passApv(false)     // matches first in class
+  , _registered(false)  // second
+  , _operator(false)    // third
+{}
 
 int Client::getFd() const
 {
