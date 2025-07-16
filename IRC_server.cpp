@@ -129,13 +129,12 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 	iss >> command;
 	
 	std::transform(command.begin(), command.end(), command.begin(), ::toupper);
-
-	if (command == "NICK")
+	if (command == "PASS")
+		handlePass(fd, iss);
+	else if (command == "NICK")
 		handleNick(fd, iss);
 	else if (command == "USER")
 		handleUser(fd, iss);
-	//else if (command == "PASS") - not sure it's neeeded
-	//handlePass(fd, iss);
 	else if (command == "PRIVMSG")
 		handlePrivMsg(fd, iss);
 	else if (command == "JOIN")
@@ -155,6 +154,124 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 	else
 		sendMessage(fd, "421 " + command + " :Unknown command\r\n");
 }
+
+void Server::handlePass(int fd, std::istringstream& iss)
+{
+	std::string password;
+	iss >> password;
+
+	Client& client = _clients[fd];
+	if (client.passApv())  // Add a flag in Client class to track this
+	{
+		sendNumeric(fd, 462, client.getNickname(), "You may not reregister"); // ERR_ALREADYREGISTERED
+		return;
+	}
+	if (password.empty())
+	{
+		sendNumeric(fd, 461, "*", "PASS :Not enough parameters"); // ERR_NEEDMOREPARAMS "<client> <command> :Not enough parameters" send error differently?
+		return;
+	}
+	if (password != _password)
+	{
+		sendNumeric(fd, 464, "*", "Password incorrect"); // ERR_PASSWDMISMATCH
+		return;
+	}
+	client.setPassApv(true); // New method in Client
+}
+
+void Server::handleNick(int fd, std::istringstream& iss)
+{
+	std::string nickname;
+	iss >> nickname;
+
+	if (nickname.empty())
+	{
+		sendNumeric(fd, 431, "*", "No nickname given"); // ERR_NONICKNAMEGIVEN
+		return;
+	}
+	// if (nickname.erroneusNick()) - develop this part
+	// {
+	// 	sendNumeric(fd, 432, nickname, "Erroneous nickname"); // ERR_ERRONEUSNICKNAME
+	// 	return;
+	// }
+	for (std::map<int, Client>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		if (it->second.getNickname() == nickname && it->first != fd)
+		{
+			sendNumeric(fd, 433, nickname, "Nickname is already in use"); // ERR_NICKNAMEINUSE
+			return;
+		}
+	}
+	Client& client = _clients[fd];
+	client.setNickname(nickname);
+	checkRegistration(client);
+}
+
+void Server::handleUser(int fd, std::istringstream& iss)
+{
+	std::string username, unused1, unused2, realname;
+	iss >> username >> unused1 >> unused2;
+
+	if (username.empty() || unused1.empty() || unused2.empty())
+	{
+		sendNumeric(fd, 461, "*", "USER :Not enough parameters");
+		return;
+	}
+
+	std::getline(iss, realname); // this includes the colon
+	if (realname.empty())
+		realname = username;
+	else if (realname[0] == ' ')
+		realname.erase(0, 1);
+	if (realname[0] == ':')
+		realname.erase(0, 1);
+
+	Client& client = _clients[fd];
+	if (!client.getUsername().empty())
+	{
+		sendNumeric(fd, 462, client.getNickname(), "You may not reregister"); // ERR_ALREADYREGISTERED
+		return;
+	}
+
+	client.setUsername(username);
+	// optional: client.setRealname(realname); // if you add realname field
+	checkRegistration(client);
+}
+
+
+void Server::checkRegistration(Client& client)
+{
+	if (client.isRegistered())
+		return;
+
+	if (client.passApv() &&
+		!client.getNickname().empty() &&
+		!client.getUsername().empty())
+	{
+		client.setRegistered(true);
+		sendNumeric(client.getFd(), 001, client.getNickname(), "Welcome to the IRC server");
+	}
+}
+
+
+
+
+void Server::sendMsg(int fd, const std::string& message)
+{
+	ssize_t sent = send(fd, message.c_str(), message.size(), 0);
+	if (sent == -1)
+	{
+		std::cerr << "Failed to send to fd " << fd << ": " << strerror(errno) << std::endl;//close socket?
+	}
+}
+
+void Server::sendNumeric(int fd, int code, const std::string& target, const std::string& message)
+{
+	std::ostringstream oss;
+	oss << code << " " << target << " :" << message << "\r\n";
+	sendMsg(fd, oss.str());
+}
+
 
 // void Server::removeClient(int fd)
 // {

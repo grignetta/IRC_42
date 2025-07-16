@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-Client::Client(int fd) : _fd(fd), _registered(false), _operator(false) {}
+Client::Client(int fd) : _fd(fd), _registered(false), _operator(false), _passApv(false) {}
 
 int Client::getFd() const
 {
@@ -44,6 +44,16 @@ void Client::appendToBuffer(const std::string& bytes)
 std::string& Client::getBuffer()
 {
 	return _readBytes;
+}
+
+void Client::setPassApv(bool status)
+{
+	_passApv = status;
+}
+
+bool Client::passApv() const
+{
+	return _passApv;
 }
 
 //void setOperator()

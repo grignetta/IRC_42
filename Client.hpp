@@ -8,6 +8,10 @@ class Client
 	public:
 		Client(int fd);
 		int getFd() const;
+		
+		void setPassApv(bool status);// { _hasGivenPass = status; }
+		bool passApv() const;// { return _hasGivenPass; }
+		
 		const std::string& getNickname() const;
 		const std::string& getUsername() const;
 		bool isRegistered() const;
@@ -26,6 +30,7 @@ class Client
 		int _fd;
 		std::string _nickname;
 		std::string _username;
+		bool _passApv;
 		bool _registered;
 		bool _operator;
 		std::string _readBytes;

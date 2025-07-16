@@ -47,6 +47,17 @@ class Server
 		void acceptNewClient();
 		void handleClientMsg(int fd);
 		void parseAndExecCmd(int fd, const std::string& line);
+		
+		void handlePass(int fd, std::istringstream& iss);
+		bool passApv();
+		void setPassApv(bool apv);
+		
+		void checkRegistration(Client& client);
+		void handleNick(int fd, std::istringstream& iss);
+		void handleUser(int fd, std::istringstream& iss);
+		
+		void sendMsg(int fd, const std::string& message);
+		void sendNumeric(int fd, int code, const std::string& target, const std::string& message);
 		// void removeClient(int clientFd);
 };
 
