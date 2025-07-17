@@ -15,11 +15,13 @@ class Client
 		
 		const std::string& getNickname() const;
 		const std::string& getUsername() const;
+		const std::string& getRealname() const;
 		bool isRegistered() const;
 		bool isOperator() const;
 
 		void setNickname(const std::string& nick);
 		void setUsername(const std::string& user);
+		void setRealname(const std::string& user);
 		void setRegistered(bool registered);
 		void setOperator();
 		
@@ -31,6 +33,7 @@ class Client
 		int _fd;
 		std::string _nickname;
 		std::string _username;
+		std::string _realname;
 		bool _passApv;
 		bool _registered;
 		bool _operator;

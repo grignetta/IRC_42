@@ -22,6 +22,11 @@ const std::string& Client::getUsername() const
 	return _username;
 }
 
+const std::string& Client::getRealname() const
+{
+	return _realname;
+}
+
 bool Client::isRegistered() const
 {
 	return _registered;
@@ -35,6 +40,11 @@ void Client::setNickname(const std::string& nick)
 void Client::setUsername(const std::string& user)
 {
 	_username = user;
+}
+
+void Client::setRealname(const std::string& user)
+{
+	_realname = user;
 }
 
 void Client::setRegistered(bool reg)

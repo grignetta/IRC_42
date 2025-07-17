@@ -24,6 +24,7 @@
 #include <fcntl.h>
 
 #define BUFFER_SIZE 1024
+#define USERLEN 12 //or move to Client.hpp?
 
 class Server
 {
