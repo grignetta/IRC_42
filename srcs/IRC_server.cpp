@@ -213,27 +213,37 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	std::string username, unused1, unused2, realname;
 	iss >> username >> unused1 >> unused2;
 
-	if (username.empty() || unused1.empty() || unused2.empty())
+	if (username.empty() || unused1.empty() || unused2.empty() || realname.empty())
 	{
 		sendNumeric(fd, 461, "*", "USER :Not enough parameters");
 		return;
 	}
 
 	std::getline(iss, realname); // this includes the colon
-	if (realname.empty())
-		realname = username;
-	else if (realname[0] == ' ')
-		realname.erase(0, 1);
-	if (realname[0] == ':')
-		realname.erase(0, 1);
-
+	while (!realname.empty() && realname.back() == ' ')
+		realname.pop_back();
+	if (realname.find(' ') != std::string::npos)
+	{	
+		if (realname[0] == ':')
+		{
+			realname.erase(0, 1);
+			while (realname[0] == ' ')
+				realname.erase(0, 1);
+		}
+		else 
+		{
+		sendNumeric(fd, 461, "*", "USER :Not enough parameters (such realname must be prefixed with ':')");
+		return;
+		}
+	}
+	
 	Client& client = _clients[fd];
 	if (!client.getUsername().empty())
 	{
 		sendNumeric(fd, 462, client.getNickname(), "You may not reregister"); // ERR_ALREADYREGISTERED
 		return;
 	}
-
+	// ADD username control USERLEN
 	client.setUsername(username);
 	// optional: client.setRealname(realname); // if you add realname field
 	checkRegistration(client);
