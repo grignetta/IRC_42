@@ -58,6 +58,16 @@ class Server
 		
 		void sendMsg(int fd, const std::string& message);
 		void sendNumeric(int fd, int code, const std::string& target, const std::string& message);
+		
+		void handlePrivMsg(int fd, std::istringstream& iss);
+		void handleJoin(int fd, std::istringstream& iss);
+		void handlePart(int fd, std::istringstream& iss);
+		void handleKick(int fd, std::istringstream& iss);
+		void handleQuit(int fd, std::istringstream& iss);
+		void handleInvite(int fd, std::istringstream& iss);
+		void handleTopic(int fd, std::istringstream& iss);
+		void handleMode(int fd, std::istringstream& iss);
+		void sendMessage(int fd, const std::string&iss);
 		// void removeClient(int clientFd);
 };
 

@@ -4,7 +4,10 @@
 #include <stdexcept>
 #include <unistd.h>
 
-EpollEventLoop() : _epollFd(-1) {}
+EpollEventLoop::EpollEventLoop()
+{
+	_epollFd = -1;
+}
 
 EpollEventLoop::~EpollEventLoop()
 {
