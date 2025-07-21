@@ -27,14 +27,26 @@ void EpollEventLoop::setup(int serverFd)
 		throw SocketException(std::string("epoll_ctl failed: ") + strerror(errno));
 }
 
-int EpollEventLoop::wait()
+std::vector<int> EpollEventLoop::wait()
 {
-	return epoll_wait(_epollFd, _events, MAX_EVENTS, -1);//returns the number of file descriptors ready for reading
+	int n = epoll_wait(_epollFd, _events, MAX_EVENTS, -1);//returns the number of file descriptors ready for reading
+	if (n < 0)
+		throw std::runtime_error(std::string("epoll_wait() failed: ") + strerror(errno));
+
+	std::vector<int> readyFds;
+	for (int i = 0; i < n; ++i) {
+		readyFds.push_back(_events[i].data.fd);
+	}
+	return readyFds;
 }
 
-int EpollEventLoop::getReadyFd(int index) const
-{
-	return _events[index].data.fd;
+void EpollEventLoop::addFd(int clientFd) {
+    epoll_event ev;
+    ev.events   = EPOLLIN;
+    ev.data.fd  = clientFd;
+    if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, clientFd, &ev) == -1)
+        throw SocketException(std::string("epoll_ctl ADD client failed: ") 
+                              + strerror(errno));
 }
 
 #endif

@@ -8,8 +8,6 @@ BT_DIR = ./builtins
 INCLUDES := $(wildcard $(INC_DIR)/*.hpp)
 #INCLUDES =   ./includes/Channel.hpp ./includes/Client.hpp ./includes/EpollLoop.hpp ./includes/Exception.hpp ./includes/IEventLoop.hpp ./includes/IRC_server.hpp ./includes/PollLoop.hpp ./includes/Signals.hpp ./includes/Socket
 
-
-
 SRCS = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*/*.cpp)  $(wildcard $(SRC_DIR)/*/*/*.cpp) $(wildcard $(SRC_DIR)/*/*/*/*.cpp)
 #SRC = main.cpp \
 		Channel.cpp\

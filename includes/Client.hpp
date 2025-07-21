@@ -38,6 +38,9 @@ class Client
 		bool _registered;
 		bool _operator;
 		std::string _readBytes;
+
+		static bool isValidNickname(const std::string& nick);
+  		static bool isValidUsername(const std::string& user);
 };
 
 #endif

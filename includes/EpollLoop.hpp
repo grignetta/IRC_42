@@ -17,8 +17,8 @@ class EpollEventLoop : public IEventLoop
 		EpollEventLoop();
 		~EpollEventLoop();
 		void setup(int serverFd);
-		int wait();
-		int getReadyFd(int index) const;
+		std::vector<int> wait();
+		void addFd(int clientFd);
 	private:
 		int _epollFd;
 		epoll_event _events[MAX_EVENTS];//array of structs
