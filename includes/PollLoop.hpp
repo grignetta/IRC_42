@@ -10,8 +10,9 @@ class PollEventLoop : public IEventLoop
 {
 	public:
 		void setup(int serverFd);
-		int wait();
-		int getReadyFd(int index) const;
+		//int wait();
+		std::vector<int> wait();
+		void addFd(int clientFd);
 	private:
 		std::vector<pollfd> _pollFds;
 

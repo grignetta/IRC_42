@@ -62,15 +62,38 @@ void Server::start()
 
 	while (!g_signal)
 	{
-		int ready = eventLoop.wait();//epoll_wait() fills up to ready entries in your events[] array
-		if (ready < 0)
-			return ;
-		for (int i = 0; i < ready; ++i)
+		//int ready = eventLoop.wait();//epoll_wait() fills up to ready entries in your events[] array
+		std::vector<int> readyFds = eventLoop.wait();
+		if (readyFds.empty())
+			continue;
+		for (std::vector<int>::size_type i = 0; i < readyFds.size(); ++i)
+		//if (ready < 0)
+		//	return ;
+		//for (int i = 0; i < ready; ++i)
 		{
-			int fd = eventLoop.getReadyFd(i);//_pollFds[index].fd or _events[index].data.fd;
+			int fd = readyFds[i]; // Use the fd directly from the vector
 			if (fd == _serverS.fd_socket)// = Is this event from the main server socket (meaning a new client)
 			{
-				acceptNewClient();
+				//acceptNewClient();
+				sockaddr_in clientAddr;
+				socklen_t  clientLen = sizeof(clientAddr);
+                int clientSock = accept(_serverS.fd_socket,
+                                        (sockaddr*)&clientAddr,
+                                        &clientLen);
+                if (clientSock < 0) {
+					if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            			break;
+        			}
+                    std::cerr << "accept() failed: " << strerror(errno) 
+                              << "\n";
+					break;
+				}
+                //} else {
+                    fcntl(clientSock, F_SETFL, O_NONBLOCK);
+                    _clients[clientSock] = Client(clientSock);
+                    eventLoop.addFd(clientSock);
+                    //std::cout << "New client fd=" << clientSock << "\n";
+                //}
 			}
 			else
 			{
@@ -115,10 +138,14 @@ void Server::handleClientMsg(int fd)
 
 	std::string& buf = client.getBuffer();
 	size_t pos;
-	while ((pos = buf.find("\r\n")) != std::string::npos)
+	//while ((pos = buf.find("\r\n")) != std::string::npos)
+	while ((pos = buf.find("\n")) != std::string::npos) //ask why \r\n?
 	{
 		std::string line = buf.substr(0, pos);
-		buf.erase(0, pos + 2); // remove processed line
+		//buf.erase(0, pos + 2); // remove processed line
+		buf.erase(0, pos + 1);
+		if (!line.empty() && line.back() == '\r')
+        	line.pop_back();	
 		parseAndExecCmd(fd, line); // NEXT STEP
 	}
 }
@@ -213,28 +240,30 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	std::string username, unused1, unused2, realname;
 	iss >> username >> unused1 >> unused2;
 
-	if (username.empty() || unused1.empty() || unused2.empty() || realname.empty())
+	if (username.empty() || unused1.empty() || unused2.empty())
 	{
 		sendNumeric(fd, 461, "*", "USER :Not enough parameters");
 		return;
 	}
 
 	std::getline(iss, realname); // this includes the colon
+	
+	// Trim leading and trailing spaces
+	while (!realname.empty() && realname.front() == ' ')
+		realname.erase(0, 1);
 	while (!realname.empty() && realname.back() == ' ')
 		realname.pop_back();
-	if (realname.find(' ') != std::string::npos)
-	{	
-		if (realname[0] == ':')
-		{
+		
+	if (!realname.empty() && realname[0] == ':')
+	{
+		realname.erase(0, 1);
+		while (!realname.empty() && realname[0] == ' ') //can this happen?
 			realname.erase(0, 1);
-			while (realname[0] == ' ')
-				realname.erase(0, 1);
-		}
-		else 
-		{
-		sendNumeric(fd, 461, "*", "USER :Not enough parameters (such realname must be prefixed with ':')");
+	}
+	else if (!realname.empty())
+	{
+		sendNumeric(fd, 461, "*", "USER :Not enough parameters (realname must be prefixed with ':')");
 		return;
-		}
 	}
 	
 	Client& client = _clients[fd];
@@ -272,6 +301,10 @@ void Server::sendMsg(int fd, const std::string& message)
 	ssize_t sent = send(fd, message.c_str(), message.size(), 0);
 	if (sent == -1)
 	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // Output buffer full — either drop or enqueue for retry
+            return;
+		}
 		std::cerr << "Failed to send to fd " << fd << ": " << strerror(errno) << std::endl;//close socket?
 	}
 }

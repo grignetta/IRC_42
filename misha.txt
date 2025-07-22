@@ -1,0 +1,3 @@
+username and nickname controll
+IRC (Internet Relay Chat)
+do we want to normalize?
