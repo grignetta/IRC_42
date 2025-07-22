@@ -86,16 +86,14 @@ bool Client::passApv() const
 // 		::send(fd, message.c_str(), message.length(), 0);
 // }
 
-namespace {
-  const std::string kNickAllowed =
+static const std::string kNickAllowed =
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "0123456789"
     "-[]\\`^{}";
 
-bool isLegalNickFirstChar(char c) {
-    return std::isalpha(c) || std::string("[]\\`^{}").find(c) != std::string::npos;
-  }
+static bool isLegalNickFirstChar(char c) {
+    return (std::isalpha(c) || std::string("[]\\`^{}").find(c) != std::string::npos);
 }
 
 bool Client::isValidNickname(const std::string& nick) {

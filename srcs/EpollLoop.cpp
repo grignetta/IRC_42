@@ -42,8 +42,8 @@ std::vector<int> EpollEventLoop::wait()
 
 void EpollEventLoop::addFd(int clientFd) {
     epoll_event ev;
-    ev.events   = EPOLLIN;
-    ev.data.fd  = clientFd;
+    ev.events = EPOLLIN;
+    ev.data.fd = clientFd;
     if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, clientFd, &ev) == -1)
         throw SocketException(std::string("epoll_ctl ADD client failed: ") 
                               + strerror(errno));

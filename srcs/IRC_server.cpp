@@ -257,7 +257,7 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	if (!realname.empty() && realname[0] == ':')
 	{
 		realname.erase(0, 1);
-		while (!realname.empty() && realname[0] == ' ')
+		while (!realname.empty() && realname[0] == ' ') //can this happen?
 			realname.erase(0, 1);
 	}
 	else if (!realname.empty())
