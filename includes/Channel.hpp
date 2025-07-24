@@ -8,12 +8,14 @@
 class Channel
 {
 	public:
+		Channel();
 		Channel(const std::string& name);
 		~Channel();
 
-		void addClient(int fd, bool isOperator = false);
+		void addClient(int fd, bool isOperator);
 		void removeClient(int fd);
 		bool hasClient(int fd) const;
+		int getClientCount() const;
 		
 		bool isOperator(int fd) const;
 		void promoteOperator(int fd);
@@ -42,7 +44,8 @@ class Channel
 
 		void inviteClient(int fd);
 		bool isInvited(int fd) const;
-
+		
+		static bool isValidName(const std::string& name);
 		const std::string& getName() const;
 	private:
 		std::string _name;

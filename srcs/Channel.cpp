@@ -1,7 +1,10 @@
 #include "Channel.hpp"
 
+Channel::Channel() : _name(""), _inviteOnly(false), _topicRestricted(false), _userLimit(0) {} //not sure why without this one there's a compiler error
+
+
 Channel::Channel(const std::string& name)
-	: _name(name), _userLimit(0), _inviteOnly(false), _topicRestricted(false) {}
+	: _name(name), _inviteOnly(false), _topicRestricted(false), _userLimit(0) {}
 
 Channel::~Channel() {}// Add some cleanup if needed
 
@@ -19,6 +22,11 @@ void Channel::removeClient(int fd)
 bool Channel::hasClient(int fd) const
 {
 	return _members.find(fd) != _members.end();
+}
+
+int Channel::getClientCount() const
+{
+	return _members.size();
 }
 
 bool Channel::isOperator(int fd) const
@@ -91,7 +99,7 @@ int Channel::getUserLimit() const {
 }
 
 bool Channel::isFull() const {
-    return _userLimit > 0 && _members.size() >= static_cast<size_t>(_userLimit);
+	return _userLimit > 0 && _members.size() >= static_cast<size_t>(_userLimit);
 }
 
 void Channel::inviteClient(int fd) {
@@ -106,6 +114,24 @@ void Channel::usedInvite(int fd)
 {
 	_invited.erase(fd);
 }
+
+bool Channel::isValidName(const std::string& name)
+{
+	if (name.length() < 2 || name.length() > 50)
+		return false;
+
+	if (name[0] != '#' && name[0] != '&' && name[0] != '+' && name[0] != '!')
+		return false;
+
+	for (size_t i = 1; i < name.length(); ++i)
+	{
+		char c = name[i];
+		if (c == ' ' || c == ',' || c == 7)
+			return false;
+	}
+	return true;
+}
+
 
 const std::string& Channel::getName() const {
 	return _name;

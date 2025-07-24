@@ -60,8 +60,13 @@ class Server
 		void sendMsg(int fd, const std::string& message);
 		void sendNumeric(int fd, int code, const std::string& target, const std::string& message);
 		
-		void handlePrivMsg(int fd, std::istringstream& iss);
 		void handleJoin(int fd, std::istringstream& iss);
+		Channel& getOrCreateChannel(const std::string& name, int clientFd);
+		bool tryJoinChannel(int fd, Channel& channel, const std::string& key);
+		void announceJoin(Channel& channel, int fd);
+		void sendTopicAndNames(Channel& channel, int fd);
+		
+		void handlePrivMsg(int fd, std::istringstream& iss);
 		void handlePart(int fd, std::istringstream& iss);
 		void handleKick(int fd, std::istringstream& iss);
 		void handleQuit(int fd, std::istringstream& iss);
