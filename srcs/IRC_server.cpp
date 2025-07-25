@@ -399,9 +399,7 @@ void Server::sendTopicAndNames(Channel& channel, int fd)
 }
 
 void Server::handlePrivMsg(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
-void Server::handlePart(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
 void Server::handleKick(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
-void Server::handleQuit(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
 void Server::handleInvite(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
 void Server::handleTopic(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
 void Server::handleMode(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}

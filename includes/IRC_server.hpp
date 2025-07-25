@@ -67,9 +67,7 @@ class Server
 		void sendTopicAndNames(Channel& channel, int fd);
 		
 		void handlePrivMsg(int fd, std::istringstream& iss);
-		void handlePart(int fd, std::istringstream& iss);
 		void handleKick(int fd, std::istringstream& iss);
-		void handleQuit(int fd, std::istringstream& iss);
 		void handleInvite(int fd, std::istringstream& iss);
 		void handleTopic(int fd, std::istringstream& iss);
 		void handleMode(int fd, std::istringstream& iss);
