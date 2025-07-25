@@ -316,11 +316,90 @@ void Server::sendNumeric(int fd, int code, const std::string& target, const std:
 	sendMsg(fd, oss.str());
 }
 
+void Server::handleJoin(int fd, std::istringstream& iss)
+{
+	std::string chanName, key;
+	iss >> chanName >> key;
+
+	if (!Channel::isValidName(chanName))
+	{
+		sendNumeric(fd, 476, "*", chanName + " :Invalid channel name");
+		return;
+	}
+
+	Channel& channel = getOrCreateChannel(chanName, fd);
+	if (channel.getClientCount() > 1 && !tryJoinChannel(fd, channel, key))
+		return;
+
+	announceJoin(channel, fd);
+	sendTopicAndNames(channel, fd);
+}
+
+Channel& Server::getOrCreateChannel(const std::string& name, int clientFd)
+{
+	if (_channels.find(name) == _channels.end()) {
+		_channels[name] = Channel(name);
+		_channels[name].addClient(clientFd, true); // first user becomes operator
+	}
+	return _channels[name];
+}
+
+bool Server::tryJoinChannel(int fd, Channel& channel, const std::string& key)//control flags handling
+{
+	if (channel.isFull())
+	{
+		sendNumeric(fd, 471, channel.getName(), "Channel is full");
+		return false;
+	}
+	if (channel.isInviteOnly() && !channel.isInvited(fd))
+	{
+		sendNumeric(fd, 473, channel.getName(), "Invite-only channel");
+		return false;
+	}
+	if (channel.hasKey() && channel.getKey() != key)
+	{
+		sendNumeric(fd, 475, channel.getName(), "Cannot join channel (+k)");
+		return false;
+	}
+	channel.addClient(fd, false); 
+	return true;
+}
+
+void Server::announceJoin(Channel& channel, int fd)
+{
+	Client& client = _clients[fd];
+	std::string msg = ":" + client.getNickname() + "!" +
+		client.getUsername() + "@localhost JOIN :" + channel.getName() + "\r\n";
+
+	for (std::map<int, bool>::const_iterator it = channel.getMembers().begin(); it != channel.getMembers().end(); ++it)
+	{
+		sendMsg(it->first, msg);
+	}
+}
+
+void Server::sendTopicAndNames(Channel& channel, int fd)
+{
+	if (!channel.getTopic().empty())
+		sendNumeric(fd, 332, channel.getName(), channel.getTopic());
+	else
+		sendNumeric(fd, 331, channel.getName(), "No topic is set");
+
+	std::ostringstream oss;
+	oss << "= " << channel.getName() << " :";
+	for (std::map<int, bool>::const_iterator it = channel.getMembers().begin(); it != channel.getMembers().end(); ++it)
+	{
+		Client& member = _clients[it->first];
+		if (it->second) // is operator
+			oss << "@" << member.getNickname() << " ";
+		else
+			oss << member.getNickname() << " ";
+	}
+	sendNumeric(fd, 353, "*", oss.str());
+	sendNumeric(fd, 366, channel.getName(), "End of NAMES list");
+}
+
 void Server::handlePrivMsg(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
-void Server::handleJoin(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
-void Server::handlePart(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
 void Server::handleKick(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
-void Server::handleQuit(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
 void Server::handleInvite(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
 void Server::handleTopic(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
 void Server::handleMode(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
