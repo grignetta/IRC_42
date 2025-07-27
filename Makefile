@@ -5,7 +5,7 @@ OBJ_DIR = ./obj
 INC_DIR = ./includes
 BT_DIR = ./builtins
 
-INCLUDES := $(wildcard $(INC_DIR)/*.hpp)
+INCLUDES := $(wildcard $(INC_DIR)/*.hpp) $(wildcard $(INC_DIR)/*/*.hpp)  $(wildcard $(INC_DIR)/*/*/*.hpp) $(wildcard $(INC_DIR)/*/*/*/*.hpp)
 #INCLUDES =   ./includes/Channel.hpp ./includes/Client.hpp ./includes/EpollLoop.hpp ./includes/Exception.hpp ./includes/IEventLoop.hpp ./includes/IRC_server.hpp ./includes/PollLoop.hpp ./includes/Signals.hpp ./includes/Socket
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*/*.cpp)  $(wildcard $(SRC_DIR)/*/*/*.cpp) $(wildcard $(SRC_DIR)/*/*/*/*.cpp)
@@ -19,7 +19,7 @@ SRCS = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*/*.cpp)  $(wildcard $
 		Socket.cpp
 
 OBJ = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
-CFLAGS := -Wall -Wextra -Werror -I$(INC_DIR) -std=c++98
+CFLAGS := -Wall -Wextra -Werror -I$(INC_DIR) -I$(INC_DIR)/core -I$(INC_DIR)/network -I$(INC_DIR)/utils -I$(INC_DIR)/exception -I$(INC_DIR)/commands -I$(INC_DIR)/messaging -std=c++98
 
 RM := rm -f
 

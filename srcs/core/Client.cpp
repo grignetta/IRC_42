@@ -1,10 +1,18 @@
 #include "Client.hpp"
+#include <sys/socket.h>  // for send()
 
-Client::Client(int fd)
-  : _fd(fd)
-  , _passApv(false)     // matches first in class
-  , _registered(false)  // second
-  , _operator(false)    // third
+// Client::Client(int fd)
+//   : _fd(fd)
+//   , _passApv(false)     // matches first in class
+//   , _registered(false)  // second
+//   , _operator(false)    // third
+// {}
+Client::Client(int fd, const std::string& host) :
+	_fd(fd),
+	_hostname(host),
+	_passApv(false),
+	_registered(false),
+	_operator(false)
 {}
 
 int Client::getFd() const
@@ -26,6 +34,19 @@ const std::string& Client::getRealname() const
 {
 	return _realname;
 }
+
+
+
+const std::string& Client::getHostname() const {
+    return _hostname;
+}
+
+void Client::sendMessage(const std::string& msg)
+{
+    ::send(_fd, msg.c_str(), msg.size(), 0);
+}
+
+
 
 bool Client::isRegistered() const
 {
