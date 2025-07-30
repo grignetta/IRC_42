@@ -2,23 +2,31 @@
 # define CLIENT_HPP
 
 #include <string>
+#include <stdexcept>
 
 class Client
 {
 	public:
 		Client(){}
-		Client(int fd);
+		Client(int fd, const std::string& host);
 		int getFd() const;
 		
 		void setPassApv(bool status);// { _hasGivenPass = status; }
 		bool passApv() const;// { return _hasGivenPass; }
 		
+		
+		//Getters	
 		const std::string& getNickname() const;
 		const std::string& getUsername() const;
 		const std::string& getRealname() const;
+		const std::string& getHostname() const;
+
+		//Bools
 		bool isRegistered() const;
 		bool isOperator() const;
 
+
+		//Setters
 		void setNickname(const std::string& nick);
 		void setUsername(const std::string& user);
 		void setRealname(const std::string& user);
@@ -27,16 +35,20 @@ class Client
 		
 		void appendToBuffer(const std::string& data);// { _readBytes += data; }
 		std::string& getBuffer();// { return _readBytes; }
-		//void sendMessage(const std::string& message);
+		void sendMessage(const std::string& message);
+		
 		
 	private:
 		int _fd;
 		std::string _nickname;
 		std::string _username;
 		std::string _realname;
+		std::string _hostname;    
+		
 		bool _passApv;
 		bool _registered;
 		bool _operator;
+		
 		std::string _readBytes;
 
 		static bool isValidNickname(const std::string& nick);

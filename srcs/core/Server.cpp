@@ -1,11 +1,7 @@
-#include "IRC_server.hpp"
+#include "Server.hpp"
 #include <algorithm>
 
-#ifdef __linux__
-#include "EpollLoop.hpp"
-#elif defined(__APPLE__)
-#include "PollLoop.hpp"
-#endif
+
 
 Server::Server(int port, const std::string& password) : _port(port), _password(password), _serverS()//why -1?
 {
@@ -17,9 +13,6 @@ Server::~Server()
 {
 	if (_serverS.fd_socket != -1)
 	{
-		//for (std::set<int>::iterator it = _clientFds.begin(); it != _clientFds.end(); ++it)
-		//close(*it);
-		//close(_serverS.fd_socket);
 		for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 			close(it->first); // the FD
 		_clients.clear();
@@ -52,71 +45,65 @@ void Server::setupSocket()
 
 void Server::start()
 {
-	#ifdef __linux__
-		EpollEventLoop eventLoop;
-	#elif defined(__APPLE__)
-		PollEventLoop eventLoop;
-	#endif
-
-	eventLoop.setup(_serverS.fd_socket);
+	_eventLoop.setup(_serverS.fd_socket);
 
 	while (!g_signal)
 	{
-		//int ready = eventLoop.wait();//epoll_wait() fills up to ready entries in your events[] array
-		std::vector<int> readyFds = eventLoop.wait();
+		std::vector<int> readyFds = _eventLoop.wait();
 		if (readyFds.empty())
 			continue;
+	
 		for (std::vector<int>::size_type i = 0; i < readyFds.size(); ++i)
-		//if (ready < 0)
-		//	return ;
-		//for (int i = 0; i < ready; ++i)
 		{
-			int fd = readyFds[i]; // Use the fd directly from the vector
-			if (fd == _serverS.fd_socket)// = Is this event from the main server socket (meaning a new client)
+			int fd = readyFds[i];
+			if (fd == _serverS.fd_socket)
 			{
-				//acceptNewClient();
-				sockaddr_in clientAddr;
-				socklen_t  clientLen = sizeof(clientAddr);
-                int clientSock = accept(_serverS.fd_socket,
-                                        (sockaddr*)&clientAddr,
-                                        &clientLen);
-                if (clientSock < 0) {
-					if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            			break;
-        			}
-                    std::cerr << "accept() failed: " << strerror(errno) 
-                              << "\n";
-					break;
-				}
-                //} else {
-                    fcntl(clientSock, F_SETFL, O_NONBLOCK);
-                    _clients[clientSock] = Client(clientSock);
-                    eventLoop.addFd(clientSock);
-                    //std::cout << "New client fd=" << clientSock << "\n";
-                //}
+				acceptNewClient();
 			}
 			else
 			{
 				handleClientMsg(fd);
 			}
 		}
-}
+	}
 }
 
 void Server::acceptNewClient()
 {
 	sockaddr_in clientAddr;
 	socklen_t clientLen = sizeof(clientAddr);
-	int clientSocket = accept(_serverS.fd_socket, (struct sockaddr*)&clientAddr, &clientLen);
-	if (clientSocket < 0) {
-		std::cerr << "Failed to accept new connection" << std::endl;
+
+	int clientSocket = accept(_serverS.fd_socket, reinterpret_cast<sockaddr*>(&clientAddr), &clientLen);
+	
+	if (clientSocket < 0)
+	{
+		std::cerr << "accept() failed: " << strerror(errno) << "\n";
 		return;
 	}
-	fcntl(clientSocket, F_SETFL, O_NONBLOCK);// Set the client socket to non-blocking mode// should be changed to write as per subjedt?
-	std::cout << "Accepted new client connection" << std::endl;
-	_clients[clientSocket] = Client(clientSocket);
-	//_clientFds.insert(clientSocket);//delete when client disconnects
+
+	// Make non-blocking
+	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) < 0)
+	{
+		std::cerr << "fcntl() failed: " << strerror(errno) << "\n";
+		// continue anyway
+	}
+
+	// Turn the client IP into a string
+	char hostbuf[INET_ADDRSTRLEN];
+	if (!inet_ntop(AF_INET, &clientAddr.sin_addr, hostbuf, sizeof(hostbuf)))
+	{
+		std::cerr << "inet_ntop() failed: " << strerror(errno) << "\n";
+		// fallback to empty string
+		hostbuf[0] = '\0';
+	}
+
+	// Construct Client with fd + hostname
+	_clients[clientSocket] = Client(clientSocket, std::string(hostbuf));
+	_eventLoop.addFd(clientSocket);
+
+	std::cout << "Accepted new client on fd=" << clientSocket << " from " << hostbuf << "\n";
 }
+
 
 int Server::getPort() const
 {
@@ -144,8 +131,8 @@ void Server::handleClientMsg(int fd)
 		std::string line = buf.substr(0, pos);
 		//buf.erase(0, pos + 2); // remove processed line
 		buf.erase(0, pos + 1);
-		if (!line.empty() && line.back() == '\r')
-        	line.pop_back();	
+		if (!line.empty() && line[line.size() - 1] == '\r')
+			line.erase(line.size() - 1);	
 		parseAndExecCmd(fd, line); // NEXT STEP
 	}
 }
@@ -180,7 +167,7 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 	else if (command == "MODE")
 		handleMode(fd, iss);
 	else
-		sendMessage(fd, "421 " + command + " :Unknown command\r\n");
+		sendMsg(fd, "421 " + command + " :Unknown command\r\n");
 }
 
 void Server::handlePass(int fd, std::istringstream& iss)
@@ -249,10 +236,10 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	std::getline(iss, realname); // this includes the colon
 	
 	// Trim leading and trailing spaces
-	while (!realname.empty() && realname.front() == ' ')
+	while (!realname.empty() && realname[0] == ' ')
 		realname.erase(0, 1);
-	while (!realname.empty() && realname.back() == ' ')
-		realname.pop_back();
+	while (!realname.empty() && realname[realname.size() - 1] == ' ')
+		realname.erase(realname.size() - 1);
 		
 	if (!realname.empty() && realname[0] == ':')
 	{
@@ -278,7 +265,6 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	checkRegistration(client);
 }
 
-
 void Server::checkRegistration(Client& client)
 {
 	if (client.isRegistered())
@@ -292,8 +278,6 @@ void Server::checkRegistration(Client& client)
 		sendNumeric(client.getFd(), 001, client.getNickname(), "Welcome to the IRC server");
 	}
 }
-
-
 
 
 void Server::sendMsg(int fd, const std::string& message)
@@ -398,16 +382,108 @@ void Server::sendTopicAndNames(Channel& channel, int fd)
 	sendNumeric(fd, 366, channel.getName(), "End of NAMES list");
 }
 
-void Server::handlePrivMsg(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
-void Server::handleKick(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
-void Server::handleInvite(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
-void Server::handleTopic(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
-void Server::handleMode(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;}
-void Server::sendMessage(int fd, const std::string&iss){(void)fd; std::cout<<iss;}
 
 
-// void Server::removeClient(int fd)
-// {
-// 	_clientFds.erase(fd);
-// 	close(fd);
-// }
+void Server::handlePrivMsg(int fd, std::istringstream& iss)
+{
+	(void)fd; std::cout<<iss;
+}
+void Server::handleKick(int fd, std::istringstream& iss)
+{
+	(void)fd; std::cout<<iss;
+}
+
+void Server::handleInvite(int fd, std::istringstream& iss)
+{
+	(void)fd; std::cout<<iss;
+}
+
+void Server::handleTopic(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;
+}
+
+void Server::handleMode(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;
+}
+
+
+// Leave a channel
+void Server::handlePart(int fd, std::istringstream& iss) {
+    // Parse <channel> [:reason…]
+    std::vector<std::string> params;
+    std::string tok;
+    while (iss >> tok) {
+        if (tok[0] == ':') {
+            std::string rest;
+            std::getline(iss, rest);
+            tok = tok.substr(1)
+                + (rest.empty() ? "" 
+                               : " " + rest.substr((rest[0]==' '||rest[0]==':')?1:0));
+            params.push_back(tok);
+            break;
+        }
+        params.push_back(tok);
+    }
+    if (params.empty()) {
+        sendNumeric(fd, 461, "*", "PART :Not enough parameters");
+        return;
+    }
+
+    std::string chanName = params[0];
+    std::string reason   = (params.size()>1 ? params[1] : "");
+
+    // Lookup channel
+    std::map<std::string,Channel>::iterator it = _channels.find(chanName);
+    if (it == _channels.end()) {
+        sendNumeric(fd, 403, chanName, "No such channel");
+        return;
+    }
+    Channel& ch = it->second;
+    if (!ch.hasClient(fd)) {
+        sendNumeric(fd, 442, chanName, "You're not on that channel");
+        return;
+    }
+
+    // Build message prefix
+    Client& cl = _clients[fd];
+    std::string prefix = ":" + cl.getNickname() + "!"
+                       + cl.getUsername() + "@"
+                       + cl.getHostname();
+    std::string msg = prefix + " PART " + chanName
+                    + (reason.empty() ? "" : " :" + reason)
+                    + "\r\n";
+
+    // Broadcast to all members
+    for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
+         m != ch.getMembers().end(); ++m)
+    {
+        sendMsg(m->first, msg);
+    }
+
+    // Reassign operator if needed
+    if (ch.isOperator(fd)) {
+        int opCount = 0;
+        for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
+             m != ch.getMembers().end(); ++m)
+        {
+            if (ch.isOperator(m->first))
+                ++opCount;
+        }
+        if (opCount == 1) {
+            for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
+                 m != ch.getMembers().end(); ++m)
+            {
+                if (m->first != fd) {
+                    ch.promoteOperator(m->first);
+                    break;
+                }
+            }
+        }
+    }
+
+    ch.removeClient(fd);
+    if (ch.getClientCount() == 0)
+        _channels.erase(it);
+}
+
+void Server::handleQuit(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;
+}
+
