@@ -18,7 +18,10 @@ SRCS = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*/*.cpp)  $(wildcard $
 		Signals.cpp \
 		Socket.cpp
 
+
 OBJ = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+DEP = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.d)
+
 CFLAGS := -Wall -Wextra -Werror -I$(INC_DIR) -I$(INC_DIR)/core -I$(INC_DIR)/network -I$(INC_DIR)/utils -I$(INC_DIR)/exception -I$(INC_DIR)/commands -I$(INC_DIR)/messaging -std=c++98
 
 RM := rm -f
@@ -37,7 +40,7 @@ $(EXECUTABLE): $(OBJ)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	mkdir -p $(@D)
-	$(CC) $(CFLAGS)  -c $< -o $@
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 clean:
 	rm -rf $(OBJ_DIR)
@@ -50,3 +53,5 @@ fclean: clean
 re: fclean all
 
 .PHONY: all clean fclean re
+
+-include $(DEP)
