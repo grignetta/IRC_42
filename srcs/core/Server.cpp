@@ -158,14 +158,16 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 		handlePart(fd, iss);
 	else if (command == "KICK")
 		handleKick(fd, iss);
-	else if (command == "QUIT")
-		handleQuit(fd, iss);
+	//else if (command == "QUIT")
+		//handleQuit(fd, iss);
 	else if (command == "INVITE")
 		handleInvite(fd, iss);
 	else if (command == "TOPIC")
 		handleTopic(fd, iss);
 	else if (command == "MODE")
 		handleMode(fd, iss);
+	else if (command == "PING")//only for weechat
+		handlePing(fd, iss);
 	else
 		sendMsg(fd, "421 " + command + " :Unknown command\r\n");
 }
@@ -275,7 +277,7 @@ void Server::checkRegistration(Client& client)
 		!client.getUsername().empty())
 	{
 		client.setRegistered(true);
-		sendNumeric(client.getFd(), 001, client.getNickname(), "Welcome to the IRC server");
+		sendNumeric(client.getFd(), 001, client.getNickname(), "Welcome to the IRC server\r\n");
 	}
 }
 
@@ -296,7 +298,12 @@ void Server::sendMsg(int fd, const std::string& message)
 void Server::sendNumeric(int fd, int code, const std::string& target, const std::string& message)
 {
 	std::ostringstream oss;
-	oss << code << " " << target << " :" << message << "\r\n";
+	//oss << code << " " << target << " :" << message << "\r\n";
+	oss << ":ircserv " 
+	    << std::setw(3) << std::setfill('0') << code  // ensures 001, 002, etc.
+	    << " " << target 
+	    << " :" << message 
+	    << "\r\n";
 	sendMsg(fd, oss.str());
 }
 
@@ -382,6 +389,78 @@ void Server::sendTopicAndNames(Channel& channel, int fd)
 	sendNumeric(fd, 366, channel.getName(), "End of NAMES list");
 }
 
+void Server::handleInvite(int fd, std::istringstream& iss)
+{
+	std::string targetNick, chanName;
+	iss >> targetNick >> chanName;
+
+	if (targetNick.empty() || chanName.empty())// is this check enough?
+	{
+		sendNumeric(fd, 461, "INVITE", "Not enough parameters");
+		return;
+	}
+
+	int inviteeFd = findClient(targetNick);
+	if (inviteeFd == -1)
+	{
+		sendNumeric(fd, 401, targetNick, "No such nick");
+		return;
+	}
+
+	if (!invitePerm(fd, inviteeFd, chanName))
+		return;
+
+	processInvite(fd, inviteeFd, targetNick, chanName);// sent even if a channel doesn't exist!
+}
+
+int Server::findClient(const std::string& nickname) const
+{
+	for (std::map<int, Client>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		if (it->second.getNickname() == nickname)
+			return it->first;
+	}
+	return -1;
+}
+
+bool Server::invitePerm(int inviterFd, int inviteeFd, const std::string& chanName)
+{
+	std::map<std::string, Channel>::iterator it = _channels.find(chanName);
+	if (it == _channels.end())
+		return true; // channel doesn't exist yet – allowed
+
+	Channel& channel = it->second;
+
+	if (!channel.hasClient(inviterFd))
+	{
+		sendNumeric(inviterFd, 442, chanName, "You're not on that channel");
+		return false;
+	}
+	if (channel.isInviteOnly() && !channel.isOperator(inviterFd))
+	{
+		sendNumeric(inviterFd, 482, chanName, "You're not channel operator");
+		return false;
+	}
+	if (channel.hasClient(inviteeFd))
+	{
+		sendNumeric(inviterFd, 443, _clients[inviteeFd].getNickname(), "is already on channel");
+		return false;
+	}
+	channel.inviteClient(inviteeFd);
+	return true;
+}
+
+void Server::processInvite(int inviterFd, int inviteeFd, const std::string& targetNick, const std::string& chanName)
+{
+	sendNumeric(inviterFd, 341, targetNick, chanName);
+
+	Client& inviter = _clients[inviterFd];
+	std::string msg = ":" + inviter.getNickname() + "!" + inviter.getUsername()
+		+ "@localhost INVITE " + targetNick + " :" + chanName + "\r\n"; // replace localhost with real hostname! Ask Deniz
+	sendMsg(inviteeFd, msg);
+	sendMsg(inviterFd, msg);
+}
+
 
 
 void Server::handlePrivMsg(int fd, std::istringstream& iss)
@@ -389,11 +468,6 @@ void Server::handlePrivMsg(int fd, std::istringstream& iss)
 	(void)fd; std::cout<<iss;
 }
 void Server::handleKick(int fd, std::istringstream& iss)
-{
-	(void)fd; std::cout<<iss;
-}
-
-void Server::handleInvite(int fd, std::istringstream& iss)
 {
 	(void)fd; std::cout<<iss;
 }
@@ -484,6 +558,21 @@ void Server::handlePart(int fd, std::istringstream& iss) {
         _channels.erase(it);
 }
 
-void Server::handleQuit(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;
+//void Server::handleQuit(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;
+//}
+
+void Server::handlePing(int fd, std::istringstream& iss)
+{
+	std::string target;
+	iss >> target;
+
+	if (target.empty())
+	{
+		sendNumeric(fd, 409, "*", "No target specified for PING");
+		return;
+	}
+
+	std::string response = ":ircserv PONG " + target + "\r\n";
+	sendMsg(fd, response);
 }
 

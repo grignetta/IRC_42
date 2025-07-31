@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <sstream>
+#include <iomanip>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -75,7 +76,8 @@ class Server
         void handleTopic(int fd, std::istringstream& iss);
         void handleMode(int fd, std::istringstream& iss);
         void handlePart(int fd, std::istringstream& iss); // Missing
-        void handleQuit(int fd, std::istringstream& iss); // Missing
+        //void handleQuit(int fd, std::istringstream& iss); // Missing
+        void handlePing(int fd, std::istringstream& iss); // For weechat compatibility
 
         // --- Helper Functions ---
         void checkRegistration(Client& client);
@@ -83,6 +85,10 @@ class Server
         bool tryJoinChannel(int fd, Channel& channel, const std::string& key);
         void announceJoin(Channel& channel, int fd);
         void sendTopicAndNames(Channel& channel, int fd);
+        
+        int findClient(const std::string& nickname) const;
+        bool invitePerm(int inviterFd, int inviteeFd, const std::string& chanName);
+        void processInvite(int inviterFd, int inviteeFd, const std::string& targetNick, const std::string& chanName);
 
         // --- Messaging ---
         void sendMsg(int fd, const std::string& message);
