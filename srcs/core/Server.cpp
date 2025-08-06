@@ -350,7 +350,7 @@ Channel& Server::getOrCreateChannel(const std::string& name, int clientFd)
 
 bool Server::tryJoinChannel(int fd, Channel& channel, const std::string& key)//control flags handling
 {
-	std::cout << "Client " << fd << " trying to join channel " << channel.getName() << "\n";
+	//std::cout << "Client " << fd << " trying to join channel " << channel.getName() << "\n";
 	if (channel.isFull())
 	{
 		sendNumeric(fd, 471, channel.getName(), ":Channel is full");
@@ -367,7 +367,7 @@ bool Server::tryJoinChannel(int fd, Channel& channel, const std::string& key)//c
 		return false;
 	}
 	channel.addClient(fd, false);
-	std::cout << "Client " << fd << " joined channel " << channel.getName() << "\n";
+	//std::cout << "Client " << fd << " joined channel " << channel.getName() << "\n";
 	return true;
 }
 
@@ -499,8 +499,6 @@ void Server::handleKick(int fd, std::istringstream& iss)
 {
 	std::string chanName, targetNick, comment;
 	iss >> chanName >> targetNick;
-	std::cerr << "Trying to kick " << targetNick << " from " << chanName << "\n";
-	std::getline(iss, comment);
 
 	if (!verifyKickParams(fd, chanName, targetNick))
 		return;
@@ -522,7 +520,6 @@ void Server::handleKick(int fd, std::istringstream& iss)
 		return;
 	}
 	int targetFd = findClient(targetNick);
-	std::cerr << "targetFd = " << targetFd << "\n";
 	if (!permitKick(fd, *channel, targetNick, targetFd))
 		return;
 	execKick(*channel, fd, targetNick, comment, targetFd);
@@ -550,8 +547,6 @@ bool Server::permitKick(int fd, Channel& channel, const std::string& targetNick,
 		sendNumeric(fd, 482, channel.getName(), ":You're not channel operator");
 		return false;
 	}
-
-	//int targetFd = findClient(targetNick);
 	if (targetFd == -1 || !channel.hasClient(targetFd))
 	{
 		sendNumeric(fd, 441, targetNick, channel.getName() + " :They aren't on that channel");
@@ -562,12 +557,8 @@ bool Server::permitKick(int fd, Channel& channel, const std::string& targetNick,
 
 void Server::execKick(Channel& channel, int kickerFd, const std::string& targetNick, const std::string& comment, int targetFd)//hope 5 are still fine?
 {
-	//int targetFd = findClient(targetNick);
-
-	//std::string reason = getKickReason(kickerFd, comment);
-	
 	Client& kicker = _clients[kickerFd];
-	std::string actualComment = "" ? kicker.getNickname() : comment;
+	std::string actualComment = comment.empty() ? kicker.getNickname() : comment;
 	std::string msg = ":" + kicker.getNickname() + "!" + kicker.getUsername() +
 		"@localhost KICK " + channel.getName() + " " + targetNick + " :" + actualComment + "\r\n";// replace localhost with real hostname! Ask Deniz
 
@@ -576,19 +567,8 @@ void Server::execKick(Channel& channel, int kickerFd, const std::string& targetN
 	{
 		sendMsg(it->first, msg);
 	}
-
 	channel.removeClient(targetFd);
 }
-
-// std::string Server::getKickReason(int kickerFd, const std::string& comment)//modify, : necessary when many spaces
-// {
-// 	if (comment.empty())
-// 		return _clients[kickerFd].getNickname();
-
-// 	if (comment[0] == ' ')//maybe more than one space?
-// 		return comment.substr(1);
-// 	return comment;
-// }
 
 std::string parseTrailing(std::istream& iss)
 {
@@ -616,58 +596,6 @@ std::string parseTrailing(std::istream& iss)
 		trailing.erase(trailing.size() - 1);
 	return trailing;
 }
-
-
-
-// void Server::handleKick(int fd, std::istringstream& iss)
-// {
-// 	std::string chanName, targetNick, comment;
-// 	iss >> chanName >> targetNick;
-// 	std::getline(iss, comment);
-	
-// 	if (chanName.empty() || targetNick.empty())
-// 	{
-// 		sendNumeric(fd, 461, "KICK", "Not enough parameters");
-// 		return;
-// 	}
-// 	Channel* channel = getChannel(chanName);
-// 	if (!channel)
-// 	{
-// 		sendNumeric(fd, 403, chanName, "No such channel");
-// 		return;
-// 	}
-// 	if (!channel->hasClient(fd))
-// 	{
-// 		sendNumeric(fd, 442, chanName, "You're not on that channel");
-// 		return;
-// 	}
-// 	if (!channel->isOperator(fd))
-// 	{
-// 		sendNumeric(fd, 482, chanName, "You're not channel operator");
-// 		return;
-// 	}
-// 	int targetFd = findClient(targetNick);
-// 	if (targetFd == -1 || !channel->hasClient(targetFd))
-// 	{
-// 		sendNumeric(fd, 441, targetNick, chanName + " :They aren't on that channel");
-// 		return;
-// 	}
-// 	// Format the KICK message
-// 	Client& kicker = _clients[fd];
-// 	std::string reason = comment.empty() ? kicker.getNickname() : comment.substr(1);
-// 	std::string msg = ":" + kicker.getNickname() + "!" + kicker.getUsername() +
-// 		"@localhost KICK " + chanName + " " + targetNick + " :" + reason + "\r\n";
-
-// 	// Send to all channel members
-// 	for (std::map<int, bool>::const_iterator it = channel->getMembers().begin();
-// 		 it != channel->getMembers().end(); ++it)
-// 	{
-// 		sendMsg(it->first, msg);
-// 	}
-
-// 	// Remove the kicked user from the channel
-// 	channel->removeClient(targetFd);
-// }
 
 Channel* Server::getChannel(const std::string& name)
 {
