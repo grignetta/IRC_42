@@ -84,11 +84,18 @@ class Server
         Channel& getOrCreateChannel(const std::string& name, int clientFd);
         bool tryJoinChannel(int fd, Channel& channel, const std::string& key);
         void announceJoin(Channel& channel, int fd);
-        void sendTopicAndNames(Channel& channel, int fd);
+        void sendNamesReply(Channel& channel, int fd);
+        void sendChannelTopic(Channel& channel, int fd);
         
         int findClient(const std::string& nickname) const;
         bool invitePerm(int inviterFd, int inviteeFd, const std::string& chanName);
         void processInvite(int inviterFd, int inviteeFd, const std::string& targetNick, const std::string& chanName);
+        
+        Channel* getChannel(const std::string& name);
+        bool verifyKickParams(int fd, const std::string& chanName, const std::string& targetNick);
+        bool permitKick(int fd, Channel& channel, const std::string& targetNick, int targetFd);
+        //std::string getKickReason(int kickerFd, const std::string& comment);
+        void execKick(Channel& channel, int kickerFd, const std::string& targetNick, const std::string& comment, int targetFd);
 
         // --- Messaging ---
         void sendMsg(int fd, const std::string& message);

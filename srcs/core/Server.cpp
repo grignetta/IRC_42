@@ -1,7 +1,7 @@
 #include "Server.hpp"
 #include <algorithm>
 
-
+std::string parseTrailing(std::istream& iss);
 
 Server::Server(int port, const std::string& password) : _port(port), _password(password), _serverS()//why -1?
 {
@@ -112,7 +112,7 @@ int Server::getPort() const
 
 void Server::handleClientMsg(int fd)
 {
-	char buffer[BUFFER_SIZE]; // probably maloc it and make stretchable?
+	char buffer[BUFFER_SIZE];
 	ssize_t bytes = recv(fd, buffer, sizeof(buffer) - 1, 0);
 	if (bytes <= 0)
 	{
@@ -131,8 +131,13 @@ void Server::handleClientMsg(int fd)
 		std::string line = buf.substr(0, pos);
 		//buf.erase(0, pos + 2); // remove processed line
 		buf.erase(0, pos + 1);
-		if (!line.empty() && line[line.size() - 1] == '\r')
-			line.erase(line.size() - 1);	
+		if (!line.empty() && line[line.size() - 1] == '\r')//remove later as we need \r\n
+			line.erase(line.size() - 1);//remove later as we need \r\n
+		if (line.length() > 510)
+		{
+			sendNumeric(fd, 421, "*", "<command> :Unknown command");//417 line toot long doesn't exist anymore
+			continue; // Skip processing this line
+		}	
 		parseAndExecCmd(fd, line); // NEXT STEP
 	}
 }
@@ -277,9 +282,13 @@ void Server::checkRegistration(Client& client)
 		!client.getUsername().empty())
 	{
 		client.setRegistered(true);
-		sendNumeric(client.getFd(), 001, client.getNickname(), "Welcome to the IRC server\r\n");
+		std::string identity = client.getNickname() + "!" + client.getUsername() + "@" + client.getHostname();
+		std::string welcomeMsg = ":Welcome to the Internet Relay Network " + identity;
+		sendNumeric(client.getFd(), 001, client.getNickname(), welcomeMsg);
+		//sendNumeric(client.getFd(), 001, client.getNickname(), "Welcome to the Internet Relay Network\r\n");//"Welcome to the Internet Relay Network <nick>!<user>@<host>" to update
+		//sendNumeric(client.getFd(), 001)
 	}
-}
+} 
 
 
 void Server::sendMsg(int fd, const std::string& message)
@@ -288,8 +297,8 @@ void Server::sendMsg(int fd, const std::string& message)
 	if (sent == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            // Output buffer full — either drop or enqueue for retry
-            return;
+			// Output buffer full — either drop or enqueue for retry
+			return;
 		}
 		std::cerr << "Failed to send to fd " << fd << ": " << strerror(errno) << std::endl;//close socket?
 	}
@@ -300,10 +309,10 @@ void Server::sendNumeric(int fd, int code, const std::string& target, const std:
 	std::ostringstream oss;
 	//oss << code << " " << target << " :" << message << "\r\n";
 	oss << ":ircserv " 
-	    << std::setw(3) << std::setfill('0') << code  // ensures 001, 002, etc.
-	    << " " << target 
-	    << " :" << message 
-	    << "\r\n";
+		<< std::setw(3) << std::setfill('0') << code  // ensures 001, 002, etc.
+		<< " " << target
+		<< " " << message 
+		<< "\r\n";
 	sendMsg(fd, oss.str());
 }
 
@@ -319,16 +328,20 @@ void Server::handleJoin(int fd, std::istringstream& iss)
 	}
 
 	Channel& channel = getOrCreateChannel(chanName, fd);
-	if (channel.getClientCount() > 1 && !tryJoinChannel(fd, channel, key))
+	if (!channel.hasClient(fd) && !tryJoinChannel(fd, channel, key))
 		return;
-
+	//if (channel.getClientCount() >= 1 && !tryJoinChannel(fd, channel, key))
+		//return;
+	
 	announceJoin(channel, fd);
-	sendTopicAndNames(channel, fd);
+	sendChannelTopic(channel, fd);
+	sendNamesReply(channel, fd);
 }
 
 Channel& Server::getOrCreateChannel(const std::string& name, int clientFd)
 {
-	if (_channels.find(name) == _channels.end()) {
+	if (_channels.find(name) == _channels.end())
+	{
 		_channels[name] = Channel(name);
 		_channels[name].addClient(clientFd, true); // first user becomes operator
 	}
@@ -337,22 +350,24 @@ Channel& Server::getOrCreateChannel(const std::string& name, int clientFd)
 
 bool Server::tryJoinChannel(int fd, Channel& channel, const std::string& key)//control flags handling
 {
+	std::cout << "Client " << fd << " trying to join channel " << channel.getName() << "\n";
 	if (channel.isFull())
 	{
-		sendNumeric(fd, 471, channel.getName(), "Channel is full");
+		sendNumeric(fd, 471, channel.getName(), ":Channel is full");
 		return false;
 	}
 	if (channel.isInviteOnly() && !channel.isInvited(fd))
 	{
-		sendNumeric(fd, 473, channel.getName(), "Invite-only channel");
+		sendNumeric(fd, 473, channel.getName(), ":Invite-only channel");
 		return false;
 	}
 	if (channel.hasKey() && channel.getKey() != key)
 	{
-		sendNumeric(fd, 475, channel.getName(), "Cannot join channel (+k)");
+		sendNumeric(fd, 475, channel.getName(), ":Cannot join channel (+k)");
 		return false;
 	}
-	channel.addClient(fd, false); 
+	channel.addClient(fd, false);
+	std::cout << "Client " << fd << " joined channel " << channel.getName() << "\n";
 	return true;
 }
 
@@ -368,25 +383,39 @@ void Server::announceJoin(Channel& channel, int fd)
 	}
 }
 
-void Server::sendTopicAndNames(Channel& channel, int fd)
+void Server::sendChannelTopic(Channel& channel, int fd)
 {
 	if (!channel.getTopic().empty())
 		sendNumeric(fd, 332, channel.getName(), channel.getTopic());
 	else
-		sendNumeric(fd, 331, channel.getName(), "No topic is set");
+		sendNumeric(fd, 331, channel.getName(), ":No topic is set");
+}
+
+void Server::sendNamesReply(Channel& channel, int fd)
+{
+	Client& client = _clients[fd];
+
+	// Determine the channel type symbol (we assume public for now)
+	std::string visibility = "="; // = public, * private, @ secret
 
 	std::ostringstream oss;
-	oss << "= " << channel.getName() << " :";
-	for (std::map<int, bool>::const_iterator it = channel.getMembers().begin(); it != channel.getMembers().end(); ++it)
-	{
-		Client& member = _clients[it->first];
-		if (it->second) // is operator
-			oss << "@" << member.getNickname() << " ";
-		else
-			oss << member.getNickname() << " ";
-	}
-	sendNumeric(fd, 353, "*", oss.str());
-	sendNumeric(fd, 366, channel.getName(), "End of NAMES list");
+	oss << visibility << " " << channel.getName() << " :";
+
+	for (std::map<int, bool>::const_iterator it = channel.getMembers().begin();
+		it != channel.getMembers().end(); ++it)
+		{
+			Client& member = _clients[it->first];
+			if (it->second) // operator flag
+				oss << "@" << member.getNickname() << " ";
+			else
+				oss << member.getNickname() << " ";
+		}
+
+	std::string namesLine = oss.str();
+	if (!namesLine.empty() && namesLine[namesLine.length() - 1] == ' ')
+		namesLine.erase(namesLine.length() - 1); // trim trailing space
+
+	sendNumeric(fd, 353, client.getNickname(), namesLine); // * means the symbol is not important here
 }
 
 void Server::handleInvite(int fd, std::istringstream& iss)
@@ -396,14 +425,14 @@ void Server::handleInvite(int fd, std::istringstream& iss)
 
 	if (targetNick.empty() || chanName.empty())// is this check enough?
 	{
-		sendNumeric(fd, 461, "INVITE", "Not enough parameters");
+		sendNumeric(fd, 461, "INVITE", ":Not enough parameters");
 		return;
 	}
 
 	int inviteeFd = findClient(targetNick);
 	if (inviteeFd == -1)
 	{
-		sendNumeric(fd, 401, targetNick, "No such nick");
+		sendNumeric(fd, 401, targetNick, ":No such nick");
 		return;
 	}
 
@@ -433,17 +462,17 @@ bool Server::invitePerm(int inviterFd, int inviteeFd, const std::string& chanNam
 
 	if (!channel.hasClient(inviterFd))
 	{
-		sendNumeric(inviterFd, 442, chanName, "You're not on that channel");
+		sendNumeric(inviterFd, 442, chanName, ":You're not on that channel");
 		return false;
 	}
 	if (channel.isInviteOnly() && !channel.isOperator(inviterFd))
 	{
-		sendNumeric(inviterFd, 482, chanName, "You're not channel operator");
+		sendNumeric(inviterFd, 482, chanName, ":You're not channel operator");
 		return false;
 	}
 	if (channel.hasClient(inviteeFd))
 	{
-		sendNumeric(inviterFd, 443, _clients[inviteeFd].getNickname(), "is already on channel");
+		sendNumeric(inviterFd, 443, _clients[inviteeFd].getNickname(), ":is already on channel");
 		return false;
 	}
 	channel.inviteClient(inviteeFd);
@@ -453,23 +482,199 @@ bool Server::invitePerm(int inviterFd, int inviteeFd, const std::string& chanNam
 void Server::processInvite(int inviterFd, int inviteeFd, const std::string& targetNick, const std::string& chanName)
 {
 	sendNumeric(inviterFd, 341, targetNick, chanName);
-
 	Client& inviter = _clients[inviterFd];
-	std::string msg = ":" + inviter.getNickname() + "!" + inviter.getUsername()
-		+ "@localhost INVITE " + targetNick + " :" + chanName + "\r\n"; // replace localhost with real hostname! Ask Deniz
+	const std::string& host = inviter.getHostname();
+	std::string msg = ":" + inviter.getNickname() + "!" + inviter.getUsername() +
+		"@" + host + " INVITE " + targetNick + " " + chanName + "\r\n";
 	sendMsg(inviteeFd, msg);
 	sendMsg(inviterFd, msg);
 }
-
-
 
 void Server::handlePrivMsg(int fd, std::istringstream& iss)
 {
 	(void)fd; std::cout<<iss;
 }
+
 void Server::handleKick(int fd, std::istringstream& iss)
 {
-	(void)fd; std::cout<<iss;
+	std::string chanName, targetNick, comment;
+	iss >> chanName >> targetNick;
+	std::cerr << "Trying to kick " << targetNick << " from " << chanName << "\n";
+	std::getline(iss, comment);
+
+	if (!verifyKickParams(fd, chanName, targetNick))
+		return;
+	
+	try
+	{
+		comment = parseTrailing(iss);
+	}
+	catch (const std::exception& e)
+	{
+		sendNumeric(fd, 461, "KICK", e.what()); // 461: ERR_NEEDMOREPARAMS
+		return;
+	}
+
+	Channel* channel = getChannel(chanName);
+	if (!channel)
+	{
+		sendNumeric(fd, 403, chanName, ":No such channel");
+		return;
+	}
+	int targetFd = findClient(targetNick);
+	std::cerr << "targetFd = " << targetFd << "\n";
+	if (!permitKick(fd, *channel, targetNick, targetFd))
+		return;
+	execKick(*channel, fd, targetNick, comment, targetFd);
+}
+
+bool Server::verifyKickParams(int fd, const std::string& chanName, const std::string& targetNick)
+{
+	if (chanName.empty() || targetNick.empty())
+	{
+		sendNumeric(fd, 461, "KICK", ":Not enough parameters");
+		return false;
+	}
+	return true;
+}
+
+bool Server::permitKick(int fd, Channel& channel, const std::string& targetNick, int targetFd)
+{
+	if (!channel.hasClient(fd))
+	{
+		sendNumeric(fd, 442, channel.getName(), ":You're not on that channel");
+		return false;
+	}
+	if (!channel.isOperator(fd))
+	{
+		sendNumeric(fd, 482, channel.getName(), ":You're not channel operator");
+		return false;
+	}
+
+	//int targetFd = findClient(targetNick);
+	if (targetFd == -1 || !channel.hasClient(targetFd))
+	{
+		sendNumeric(fd, 441, targetNick, channel.getName() + " :They aren't on that channel");
+		return false;
+	}
+	return true;
+}
+
+void Server::execKick(Channel& channel, int kickerFd, const std::string& targetNick, const std::string& comment, int targetFd)//hope 5 are still fine?
+{
+	//int targetFd = findClient(targetNick);
+
+	//std::string reason = getKickReason(kickerFd, comment);
+	
+	Client& kicker = _clients[kickerFd];
+	std::string actualComment = "" ? kicker.getNickname() : comment;
+	std::string msg = ":" + kicker.getNickname() + "!" + kicker.getUsername() +
+		"@localhost KICK " + channel.getName() + " " + targetNick + " :" + actualComment + "\r\n";// replace localhost with real hostname! Ask Deniz
+
+	for (std::map<int, bool>::const_iterator it = channel.getMembers().begin();
+		 it != channel.getMembers().end(); ++it)
+	{
+		sendMsg(it->first, msg);
+	}
+
+	channel.removeClient(targetFd);
+}
+
+// std::string Server::getKickReason(int kickerFd, const std::string& comment)//modify, : necessary when many spaces
+// {
+// 	if (comment.empty())
+// 		return _clients[kickerFd].getNickname();
+
+// 	if (comment[0] == ' ')//maybe more than one space?
+// 		return comment.substr(1);
+// 	return comment;
+// }
+
+std::string parseTrailing(std::istream& iss)
+{
+	std::string trailing;
+	std::getline(iss, trailing);
+
+	// Trim leading spaces
+	while (!trailing.empty() && trailing[0] == ' ')
+		trailing.erase(0, 1);
+	if (trailing.empty())
+		return "";
+
+	if (trailing.find(' ') != std::string::npos && trailing[0] != ':')
+			throw std::runtime_error("Missing ':' before trailing parameter with spaces");//not sure if needed
+	// If colon is present, remove it
+	if (trailing[0] == ':')
+	{
+		trailing.erase(0, 1);
+		// Remove extra spaces after colon
+		while (!trailing.empty() && trailing[0] == ' ')
+			trailing.erase(0, 1);
+	}
+	// Trim trailing spaces
+	while (!trailing.empty() && trailing[trailing.size() - 1] == ' ')
+		trailing.erase(trailing.size() - 1);
+	return trailing;
+}
+
+
+
+// void Server::handleKick(int fd, std::istringstream& iss)
+// {
+// 	std::string chanName, targetNick, comment;
+// 	iss >> chanName >> targetNick;
+// 	std::getline(iss, comment);
+	
+// 	if (chanName.empty() || targetNick.empty())
+// 	{
+// 		sendNumeric(fd, 461, "KICK", "Not enough parameters");
+// 		return;
+// 	}
+// 	Channel* channel = getChannel(chanName);
+// 	if (!channel)
+// 	{
+// 		sendNumeric(fd, 403, chanName, "No such channel");
+// 		return;
+// 	}
+// 	if (!channel->hasClient(fd))
+// 	{
+// 		sendNumeric(fd, 442, chanName, "You're not on that channel");
+// 		return;
+// 	}
+// 	if (!channel->isOperator(fd))
+// 	{
+// 		sendNumeric(fd, 482, chanName, "You're not channel operator");
+// 		return;
+// 	}
+// 	int targetFd = findClient(targetNick);
+// 	if (targetFd == -1 || !channel->hasClient(targetFd))
+// 	{
+// 		sendNumeric(fd, 441, targetNick, chanName + " :They aren't on that channel");
+// 		return;
+// 	}
+// 	// Format the KICK message
+// 	Client& kicker = _clients[fd];
+// 	std::string reason = comment.empty() ? kicker.getNickname() : comment.substr(1);
+// 	std::string msg = ":" + kicker.getNickname() + "!" + kicker.getUsername() +
+// 		"@localhost KICK " + chanName + " " + targetNick + " :" + reason + "\r\n";
+
+// 	// Send to all channel members
+// 	for (std::map<int, bool>::const_iterator it = channel->getMembers().begin();
+// 		 it != channel->getMembers().end(); ++it)
+// 	{
+// 		sendMsg(it->first, msg);
+// 	}
+
+// 	// Remove the kicked user from the channel
+// 	channel->removeClient(targetFd);
+// }
+
+Channel* Server::getChannel(const std::string& name)
+{
+	std::map<std::string, Channel>::iterator it = _channels.find(name);
+	if (it != _channels.end())
+		return &it->second;
+	return NULL;
 }
 
 void Server::handleTopic(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;
@@ -481,81 +686,82 @@ void Server::handleMode(int fd, std::istringstream& iss){(void)fd; std::cout<<is
 
 // Leave a channel
 void Server::handlePart(int fd, std::istringstream& iss) {
-    // Parse <channel> [:reason…]
-    std::vector<std::string> params;
-    std::string tok;
-    while (iss >> tok) {
-        if (tok[0] == ':') {
-            std::string rest;
-            std::getline(iss, rest);
-            tok = tok.substr(1)
-                + (rest.empty() ? "" 
-                               : " " + rest.substr((rest[0]==' '||rest[0]==':')?1:0));
-            params.push_back(tok);
-            break;
-        }
-        params.push_back(tok);
-    }
-    if (params.empty()) {
-        sendNumeric(fd, 461, "*", "PART :Not enough parameters");
-        return;
-    }
+	// Parse <channel> [:reason…]
+	std::vector<std::string> params;
+	std::string tok;
+	while (iss >> tok) {
+		if (tok[0] == ':') {
+			std::string rest;
+			std::getline(iss, rest);
+			tok = tok.substr(1)
+				+ (rest.empty() ? "" 
+							   : " " + rest.substr((rest[0]==' '||rest[0]==':')?1:0));
+			params.push_back(tok);
+			break;
+		}
+		params.push_back(tok);
+	}
+	if (params.empty()) {
+		sendNumeric(fd, 461, "*", "PART :Not enough parameters");
+		return;
+	}
 
-    std::string chanName = params[0];
-    std::string reason   = (params.size()>1 ? params[1] : "");
+	std::string chanName = params[0];
+	std::string reason   = (params.size()>1 ? params[1] : "");
 
-    // Lookup channel
-    std::map<std::string,Channel>::iterator it = _channels.find(chanName);
-    if (it == _channels.end()) {
-        sendNumeric(fd, 403, chanName, "No such channel");
-        return;
-    }
-    Channel& ch = it->second;
-    if (!ch.hasClient(fd)) {
-        sendNumeric(fd, 442, chanName, "You're not on that channel");
-        return;
-    }
+	// Lookup channel
+	std::map<std::string,Channel>::iterator it = _channels.find(chanName);
+	if (it == _channels.end())
+	{
+		sendNumeric(fd, 403, chanName, "No such channel");
+		return;
+	}
+	Channel& ch = it->second;
+	if (!ch.hasClient(fd)) {
+		sendNumeric(fd, 442, chanName, "You're not on that channel");
+		return;
+	}
 
-    // Build message prefix
-    Client& cl = _clients[fd];
-    std::string prefix = ":" + cl.getNickname() + "!"
-                       + cl.getUsername() + "@"
-                       + cl.getHostname();
-    std::string msg = prefix + " PART " + chanName
-                    + (reason.empty() ? "" : " :" + reason)
-                    + "\r\n";
+	// Build message prefix
+	Client& cl = _clients[fd];
+	std::string prefix = ":" + cl.getNickname() + "!"
+					   + cl.getUsername() + "@"
+					   + cl.getHostname();
+	std::string msg = prefix + " PART " + chanName
+					+ (reason.empty() ? "" : " :" + reason)
+					+ "\r\n";
 
-    // Broadcast to all members
-    for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
-         m != ch.getMembers().end(); ++m)
-    {
-        sendMsg(m->first, msg);
-    }
+	// Broadcast to all members
+	for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
+		 m != ch.getMembers().end(); ++m)
+	{
+		sendMsg(m->first, msg);
+	}
 
-    // Reassign operator if needed
-    if (ch.isOperator(fd)) {
-        int opCount = 0;
-        for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
-             m != ch.getMembers().end(); ++m)
-        {
-            if (ch.isOperator(m->first))
-                ++opCount;
-        }
-        if (opCount == 1) {
-            for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
-                 m != ch.getMembers().end(); ++m)
-            {
-                if (m->first != fd) {
-                    ch.promoteOperator(m->first);
-                    break;
-                }
-            }
-        }
-    }
+	// Reassign operator if needed
+	if (ch.isOperator(fd)) {
+		int opCount = 0;
+		for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
+			 m != ch.getMembers().end(); ++m)
+		{
+			if (ch.isOperator(m->first))
+				++opCount;
+		}
+		if (opCount == 1) {
+			for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
+				 m != ch.getMembers().end(); ++m)
+			{
+				if (m->first != fd) {
+					ch.promoteOperator(m->first);
+					break;
+				}
+			}
+		}
+	}
 
-    ch.removeClient(fd);
-    if (ch.getClientCount() == 0)
-        _channels.erase(it);
+	ch.removeClient(fd);
+	if (ch.getClientCount() == 0)
+		_channels.erase(it);
 }
 
 //void Server::handleQuit(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;
