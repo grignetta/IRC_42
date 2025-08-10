@@ -104,7 +104,6 @@ void Server::acceptNewClient()
 	std::cout << "Accepted new client on fd=" << clientSocket << " from " << hostbuf << "\n";
 }
 
-
 int Server::getPort() const
 {
 	return _port;
@@ -226,6 +225,11 @@ void Server::handleNick(int fd, std::istringstream& iss)
 	}
 	Client& client = _clients[fd];
 	client.setNickname(nickname);
+	//I did this Change here and in USER because my registeration was always giving an error
+	client.incrementRegisterNickUserNames(1);
+	if (client.getRegisterNickUserNames() == 2)
+		client.setRegistered(true);
+	
 	checkRegistration(client);
 }
 
@@ -268,6 +272,10 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	}
 	// ADD username control USERLEN
 	client.setUsername(username);
+	//I did this Change here and in NICK because my registeration was always giving an error
+	client.incrementRegisterNickUserNames(1);
+	if (client.getRegisterNickUserNames() == 2)
+		client.setRegistered(true);
 	// optional: client.setRealname(realname); // if you add realname field
 	checkRegistration(client);
 }
@@ -289,7 +297,6 @@ void Server::checkRegistration(Client& client)
 		//sendNumeric(client.getFd(), 001)
 	}
 } 
-
 
 void Server::sendMsg(int fd, const std::string& message)
 {
@@ -492,7 +499,91 @@ void Server::processInvite(int inviterFd, int inviteeFd, const std::string& targ
 
 void Server::handlePrivMsg(int fd, std::istringstream& iss)
 {
-	(void)fd; std::cout<<iss;
+	// Must be registered first
+	// CHECKING BASIC IF IT IS REGISTERD AND IF TARGET IS EMPTY OR NOT
+	Client& sender = _clients[fd];
+	if (!sender.isRegistered())
+	{
+		sendNumeric(fd, 451, "*", "Y:ou have not registered");
+		return;
+	}
+
+	// Parse targets
+	std::string targets;
+	iss >> targets;
+	if (targets.empty())
+	{
+		sendNumeric(fd, 411, "*", ":No recipient given (PRIVMSG)");
+		return;
+	}
+
+	// Parse the trailing text (allows spaces), using our helper USING THE
+	// PARSE TRAILING WHICH DARIA CREATED
+	std::string text;
+	try
+	{
+		text = parseTrailing(iss);
+	} catch (...)
+	{
+		// Missing ':' before spaced text, etc.
+		sendNumeric(fd, 412, "*", ":No text to send");
+		return;
+	}
+	if (text.empty())
+	{
+		sendNumeric(fd, 412, "*", ":No text to send");
+		return;
+	}
+
+	// Building sender prefix once to identify ON THE RECIEVER end
+	// :newUser!newUser@127.0.0.1 PRIVMSG ncUser :Message
+	const std::string prefix = ":" + sender.getNickname() + "!" + sender.getUsername() + "@" + sender.getHostname();
+
+	// Support comma-separated targets THIS IS IMPORTTANT IF WE SEND THE MESSAGE TO MORE THAN ONE RECIEPENTS
+	size_t start = 0;
+	while (start < targets.size())
+	{
+		size_t comma = targets.find(',', start);
+		std::string t = targets.substr(start, (comma == std::string::npos ? targets.size() : comma) - start);
+		start = (comma == std::string::npos ? targets.size() : comma + 1);
+		if (t.empty())
+			continue;	
+		if (t[0] == '#' || t[0] == '&')
+		{
+			// Channel target
+			Channel* ch = getChannel(t);
+			if (!ch)
+			{
+				sendNumeric(fd, 403, t, ":No such channel");
+				continue;
+			}
+			// IT WAS NOT EXPLICITLY SAID ABOUT +N IN THE MODES SO I AM ACTING AS +N IS ALWAYS ON SO NON CHANNEL MEMBERS CAN NOT SEND
+			// MESSEAGE TO THE CHANNEL
+			if (!ch->hasClient(fd))
+			{
+				sendNumeric(fd, 404, t, "::Cannot send to channel");
+				continue;
+			}
+			const std::string out = prefix + " PRIVMSG " + t + " :" + text + "\r\n";
+			for (std::map<int,bool>::const_iterator it = ch->getMembers().begin(); it != ch->getMembers().end(); ++it)
+			{
+				if (it->first == fd) continue;   // keps the message away from sender// not send the message back to sender
+				sendMsg(it->first, out);
+			}
+		}
+		else
+		{
+			// Nickname target
+			int rcptFd = findClient(t);
+			if (rcptFd == -1)
+			{
+				sendNumeric(fd, 401, t, ":No such nick/channel");
+				continue;
+			}
+			const std::string out = prefix + " PRIVMSG " + t + " :" + text + "\r\n";
+			sendMsg(rcptFd, out);
+		}
+	}
 }
 
 void Server::handleKick(int fd, std::istringstream& iss)
@@ -582,7 +673,7 @@ std::string parseTrailing(std::istream& iss)
 		return "";
 
 	if (trailing.find(' ') != std::string::npos && trailing[0] != ':')
-			throw std::runtime_error("Missing ':' before trailing parameter with spaces");//not sure if needed
+			throw std::runtime_error("Missing ':' before trailing parameter with spaces");//not sure if needed //dtmcomment: IT IS NEEDED FOR PRIVMSG AFTER colon the message comes, if no colon error
 	// If colon is present, remove it
 	if (trailing[0] == ':')
 	{
@@ -610,7 +701,6 @@ void Server::handleTopic(int fd, std::istringstream& iss){(void)fd; std::cout<<i
 
 void Server::handleMode(int fd, std::istringstream& iss){(void)fd; std::cout<<iss;
 }
-
 
 // Leave a channel
 void Server::handlePart(int fd, std::istringstream& iss) {
@@ -709,4 +799,3 @@ void Server::handlePing(int fd, std::istringstream& iss)
 	std::string response = ":ircserv PONG " + target + "\r\n";
 	sendMsg(fd, response);
 }
-
