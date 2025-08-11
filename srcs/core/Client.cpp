@@ -12,7 +12,8 @@ Client::Client(int fd, const std::string& host) :
 	_hostname(host),
 	_passApv(false),
 	_registered(false),
-	_operator(false)
+	_operator(false),
+    registerNickUserNames(0)
 {}
 
 int Client::getFd() const
@@ -138,4 +139,15 @@ bool Client::isValidUsername(const std::string& user) {
             return false;
     }
     return true;
+}
+
+
+void Client::incrementRegisterNickUserNames(int increment)
+{
+    registerNickUserNames += increment;
+}
+
+const int& Client::getRegisterNickUserNames() const
+{
+    return registerNickUserNames;
 }
