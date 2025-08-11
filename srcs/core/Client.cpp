@@ -36,8 +36,6 @@ const std::string& Client::getRealname() const
 	return _realname;
 }
 
-
-
 const std::string& Client::getHostname() const {
     return _hostname;
 }
@@ -46,8 +44,6 @@ void Client::sendMessage(const std::string& msg)
 {
     ::send(_fd, msg.c_str(), msg.size(), 0);
 }
-
-
 
 bool Client::isRegistered() const
 {
@@ -86,6 +82,7 @@ void Client::appendToBuffer(const std::string& bytes)
 {
 	_readBytes += bytes;
 }
+
 std::string& Client::getBuffer()
 {
 	return _readBytes;
@@ -140,7 +137,6 @@ bool Client::isValidUsername(const std::string& user) {
     }
     return true;
 }
-
 
 void Client::incrementRegisterNickUserNames(int increment)
 {

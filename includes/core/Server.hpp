@@ -100,7 +100,9 @@ class Server
         // --- Messaging ---
         void sendMsg(int fd, const std::string& message);
         void sendNumeric(int fd, int code, const std::string& target, const std::string& message);
-        
+
+        //utils
+        std::string parseTrailing(std::istream& in);
         // Note: The methods below seem redundant or misplaced
         // bool passApv(); // Client state, should be in Client class
         // void setPassApv(bool apv); // Client state, should be in Client class
