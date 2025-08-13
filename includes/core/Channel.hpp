@@ -12,16 +12,16 @@ class Channel
 		Channel(const std::string& name);
 		~Channel();
 
-		void addClient(int fd, bool isOperator);
-		void removeClient(int fd);
-		bool hasClient(int fd) const;
-		int getClientCount() const;
+		void							addClient(int fd, bool isOperator);
+		void							removeClient(int fd);
+		bool							hasClient(int fd) const;
+		int								getClientCount() const;
 		
-		bool isOperator(int fd) const;
-		void promoteOperator(int fd);
-		void demoteOperator(int fd);
+		bool							isOperator(int fd) const;
+		void							promoteOperator(int fd);
+		void							demoteOperator(int fd);
 		
-		const std::map<int, bool>& getMembers() const;// is it nessary?
+		const std::map<int, bool>&		getMembers() const;// is it nessary?
 
 		void setTopic(const std::string& topic);
 		const std::string& getTopic() const;
@@ -47,6 +47,8 @@ class Channel
 		
 		static bool isValidName(const std::string& name);
 		const std::string& getName() const;
+
+
 	private:
 		std::string _name;
 		std::string _topic;

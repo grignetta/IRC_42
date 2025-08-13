@@ -62,6 +62,9 @@ bool Server::permitKick(int fd, Channel& channel, const std::string& targetNick,
 	return true;
 }
 
+
+
+
 void Server::execKick(Channel& channel, int kickerFd, const std::string& targetNick, const std::string& comment, int targetFd)//hope 5 are still fine?
 {
 	Client& kicker = _clients[kickerFd];

@@ -12,6 +12,7 @@ void Server::handleJoin(int fd, std::istringstream& iss)
 	}
 
 	Channel& channel = getOrCreateChannel(chanName, fd);
+	
 	if (!channel.hasClient(fd) && !tryJoinChannel(fd, channel, key))
 		return;
 	//if (channel.getClientCount() >= 1 && !tryJoinChannel(fd, channel, key))

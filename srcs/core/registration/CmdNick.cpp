@@ -4,7 +4,13 @@ void Server::handleNick(int fd, std::istringstream& iss)
 {
 	std::string nickname;
 	iss >> nickname;
-
+	
+	Client& client = _clients[fd];
+	if (!client.passApv())
+	{
+		sendNumeric(fd, 461, "PASS", ":Not enough parameters"); // ERR_NONICKNAMEGIVEN
+		return;
+	}
 	if (nickname.empty())
 	{
 		sendNumeric(fd, 431, "*", "No nickname given"); // ERR_NONICKNAMEGIVEN
@@ -23,12 +29,11 @@ void Server::handleNick(int fd, std::istringstream& iss)
 			return;
 		}
 	}
-	Client& client = _clients[fd];
 	client.setNickname(nickname);
 	//I did this Change here and in USER because my registeration was always giving an error
-	client.incrementRegisterNickUserNames(1);
-	if (client.getRegisterNickUserNames() == 2)
-		client.setRegistered(true);
+	// client.incrementRegisterNickUserNames(1);
+	// if (client.getRegisterNickUserNames() == 2)
+	// 	client.setRegistered(true);
 	
 	checkRegistration(client);
 }
