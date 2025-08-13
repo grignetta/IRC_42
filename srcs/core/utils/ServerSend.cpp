@@ -2,7 +2,13 @@
 
 void Server::sendMsg(int fd, const std::string& message)
 {
-	ssize_t sent = send(fd, message.c_str(), message.size(), 0);
+	std::string msg = message;
+	if (msg.size() > 510)
+	{
+		msg.resize(510);
+		msg += "\r\n";
+	}
+	ssize_t sent = send(fd, msg.c_str(), msg.size(), 0);
 	if (sent == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {

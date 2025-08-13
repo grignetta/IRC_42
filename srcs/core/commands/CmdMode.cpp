@@ -257,42 +257,43 @@ void Server::applyChannelModes(int fd,
 	}
 }
 
-static void sendMessage(int fd, std::string line)
-{
-    // Ensure CRLF exactly once
-    if (line.size() < 2 || line.compare(line.size()-2, 2, "\r\n") != 0)
-        line += "\r\n";
+// static void sendMessage(int fd, std::string line)
+// {
+//     // Ensure CRLF exactly once
+//     if (line.size() < 2 || line.compare(line.size()-2, 2, "\r\n") != 0)
+//         line += "\r\n";
 
-    // IRC hard limit: 512 bytes including CRLF.
-    if (line.size() > 512)
-        line.resize(512);
+//     // IRC hard limit: 512 bytes including CRLF.
+//     if (line.size() > 512)
+//         line.resize(512);
 
-    const char* buf = line.c_str();
-    size_t left = line.size();
+//     const char* buf = line.c_str();
+//     size_t left = line.size();
 
-    while (left > 0)
-    {
-        ssize_t n = send(fd, buf, left, MSG_NOSIGNAL); // avoid SIGPIPE
-        if (n > 0) { buf += n; left -= static_cast<size_t>(n); continue; }
+//     while (left > 0)
+//     {
+//         ssize_t n = send(fd, buf, left, MSG_NOSIGNAL); // avoid SIGPIPE
+//         if (n > 0) { buf += n; left -= static_cast<size_t>(n); continue; }
 
-        if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
-        {
-            // Non-blocking socket is full — enqueue 'line.substr(line.size()-left)'
-            // to an outgoing buffer and try again later in your event loop.
-            break;
-        }
+//         if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+//         {
+//             // Non-blocking socket is full — enqueue 'line.substr(line.size()-left)'
+//             // to an outgoing buffer and try again later in your event loop.
+//             break;
+//         }
 
-        // Other errors
-        std::cerr << "sendMsg error to fd " << fd << ": " << strerror(errno);
-        break; // optionally close fd on fatal errors
-    }
-}
+//         // Other errors
+//         std::cerr << "sendMsg error to fd " << fd << ": " << strerror(errno);
+//         break; // optionally close fd on fatal errors
+//     }
+// }
 void Server::broadcastToChannel(const Channel& ch, const std::string& message)
 {
     for (std::map<int, bool>::const_iterator it = ch.getMembers().begin(); it != ch.getMembers().end(); ++it)
     {
         int memberFd = it->first;
-        sendMessage(memberFd, message); 
+		sendMsg(memberFd, message);
+        //sendMessage(memberFd, message); 
 		//std::cout << _clients[memberFd].getNickname() << std::endl;
     }
 }
