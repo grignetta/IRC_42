@@ -53,7 +53,7 @@ bool Server::invitePerm(int inviterFd, int inviteeFd, const std::string& chanNam
 
 void Server::processInvite(int inviterFd, int inviteeFd, const std::string& targetNick, const std::string& chanName)
 {
-	sendNumeric(inviterFd, 341, targetNick, chanName);
+	sendNumeric(inviterFd, 341, chanName, targetNick);
 	
 	Client& inviter = _clients[inviterFd];
     const std::string prefix = ":" + inviter.getNickname() + "!" +

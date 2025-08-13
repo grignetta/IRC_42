@@ -8,7 +8,7 @@ void Server::handleNick(int fd, std::istringstream& iss)
 	Client& client = _clients[fd];
 	if (!client.passApv())
 	{
-		sendNumeric(fd, 464, "PASS", ":Password incorrect"); // ERR_NONICKNAMEGIVEN
+		sendNumeric(fd, 464, "*", ":Password incorrect"); // ERR_NONICKNAMEGIVEN
 		return;
 	}
 	if (nickname.empty())
