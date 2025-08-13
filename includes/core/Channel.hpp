@@ -54,7 +54,7 @@ class Channel
 		std::string _topic;
 		std::map<int, bool> _members;// bool for ops
 		bool _inviteOnly __attribute__((unused));
-		bool _topicRestricted __attribute__((unused));
+		bool _topicRestricted;
 		std::string _key;
 		int _userLimit __attribute__((unused));
 		std::set<int> _invited;       // For +i mode
