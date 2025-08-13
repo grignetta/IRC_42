@@ -5,6 +5,13 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	std::string username, unused1, unused2, realname;
 	iss >> username >> unused1 >> unused2;
 
+	Client& client = _clients[fd];
+	if (!client.passApv())
+	{
+		sendNumeric(fd, 461, "PASS", ":Not enough parameters"); // ERR_NONICKNAMEGIVEN
+		return;
+	}
+	
 	if (username.empty() || unused1.empty() || unused2.empty())
 	{
 		sendNumeric(fd, 461, "*", "USER :Not enough parameters");
@@ -12,6 +19,11 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	}
 
 	std::getline(iss, realname); // this includes the colon
+	if (realname.empty())
+	{
+		sendNumeric(fd, 461, "*", "USER :Not enough parameters");
+		return;
+	}
 	
 	// Trim leading and trailing spaces
 	while (!realname.empty() && realname[0] == ' ')
@@ -31,7 +43,6 @@ void Server::handleUser(int fd, std::istringstream& iss)
 		return;
 	}
 	
-	Client& client = _clients[fd];
 	if (!client.getUsername().empty())
 	{
 		sendNumeric(fd, 462, client.getNickname(), "You may not reregister"); // ERR_ALREADYREGISTERED
@@ -40,9 +51,9 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	// ADD username control USERLEN
 	client.setUsername(username);
 	//I did this Change here and in NICK because my registeration was always giving an error
-	client.incrementRegisterNickUserNames(1);
-	if (client.getRegisterNickUserNames() == 2)
-		client.setRegistered(true);
+	// client.incrementRegisterNickUserNames(1);
+	// if (client.getRegisterNickUserNames() == 2)
+	// 	client.setRegistered(true);
 	// optional: client.setRealname(realname); // if you add realname field
 	checkRegistration(client);
 }
