@@ -11,44 +11,28 @@
 void Server::handleMode(int fd, std::istringstream& iss)
 {
 	if (!_clients[fd].isRegistered())
-	{
-		sendNumeric(fd, 451, "*", "You have not registered");
-		return;
-	}
+		return sendNumeric(fd, 451, "*", "You have not registered");
+	
 	std::string chanName;  iss >> chanName;
 	if (chanName.empty())
-	{
-		sendNumeric(fd, 461, "MODE", ":Not enough parameters");
-		return;
-	}	
-	if (chanName[0] != '#' && chanName[0] != '&')
-	{
-		sendNumeric(fd, 403, chanName, ":No such channel");
-		return;
-	}
-	Channel* ch = getChannel(chanName);
+		return sendNumeric(fd, 461, "MODE", ":Not enough parameters");
 	
+	if (chanName[0] != '#' && chanName[0] != '&')
+		return sendNumeric(fd, 403, chanName, ":No such channel");
+
+	Channel* ch = getChannel(chanName);
 	if (!ch)
-	{
-		sendNumeric(fd, 403, chanName, ":No such channel");
-		return;
-	}	
+		return sendNumeric(fd, 403, chanName, ":No such channel");
 	
 	// IF ONLY A TARGE WHAT I MEAN IS it is just MODE #channel then you just tell the modes on
 	std::string modeSpec;
 	if (!(iss >> modeSpec))
-	{
-		sendChannelModeIs(fd, *ch);   // your 324 reply helper
-		return;
-	}	
+		return sendChannelModeIs(fd, *ch); 
 	
 	// Only channel operators may change modes
 	
 	if (!ch->isOperator(fd))
-	{
-		sendNumeric(fd, 482, chanName, ":You're not channel operator");
-		return;
-	}	
+		return sendNumeric(fd, 482, chanName, ":You're not channel operator");
 	
 	// Collect remaining tokens as parameters
 	std::vector<std::string> params;
@@ -110,11 +94,7 @@ void Server::applyChannelModes(int fd,
 		return ;
 	}
 	if (modeSpec.size() < 2)
-	{
-		sendChannelModeIs(fd, ch);
-		return;
-	}
-	
+		return sendChannelModeIs(fd, ch);
 	
 	bool plusMode = (modeSpec[0] == '+');
 	std::string modesAdded;
@@ -246,7 +226,7 @@ void Server::applyChannelModes(int fd,
 	{
 		Client& client = _clients[fd];
 		std::string announce = ":" + client.getNickname() + "!" + client.getUsername() + "@host "
-		                      "MODE " + ch.getName() + " " + modesAdded;//check this!
+		                      "MODE " + ch.getName() + " " + modesAdded;
 
 		// If you have params that should follow (key, limit, nick, etc.)
 		for (size_t i = 0; i < params.size(); ++i)
@@ -287,6 +267,7 @@ static void sendMessage(int fd, std::string line)
         break; // optionally close fd on fatal errors
     }
 }
+
 void Server::broadcastToChannel(const Channel& ch, const std::string& message)
 {
     for (std::map<int, bool>::const_iterator it = ch.getMembers().begin(); it != ch.getMembers().end(); ++it)

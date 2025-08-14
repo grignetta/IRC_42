@@ -8,7 +8,7 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	Client& client = _clients[fd];
 	if (!client.passApv())
 	{
-		sendNumeric(fd, 461, "PASS", ":Not enough parameters"); // ERR_NONICKNAMEGIVEN
+		sendNumeric(fd, 464, "*", ":Password incorrect"); // ERR_NONICKNAMEGIVEN
 		return;
 	}
 	

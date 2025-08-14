@@ -87,14 +87,17 @@ class Server
 		void		sendNamesReply(Channel& channel, int fd);
 		void		sendChannelTopic(Channel& channel, int fd);
 		
-		void		applyChannelModes(int fd,
-								Channel& ch,
-								const std::string& modeSpec,
-								const std::vector<std::string>& params); 
+		// CMD MODE
+		void		applyChannelModes(int fd, Channel& ch, const std::string& modeSpec, const std::vector<std::string>& params); 
 		void		sendChannelModeIs(int fd, const Channel& ch);
 		int			getClientFdWithNick(const std::string& nick) const;
 		void		broadcastToChannel(const Channel& ch, const std::string& message);
 		
+		// CMD JOIN
+		void		leaveAllChannels(int fd, const std::string& reason);
+
+
+
 		int			findClient(const std::string& nickname) const;
 		bool		invitePerm(int inviterFd, int inviteeFd, const std::string& chanName);
 		void		processInvite(int inviterFd, int inviteeFd, const std::string& targetNick, const std::string& chanName);

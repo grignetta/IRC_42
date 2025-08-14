@@ -14,36 +14,41 @@ class Channel
 
 		void							addClient(int fd, bool isOperator);
 		void							removeClient(int fd);
-		bool							hasClient(int fd) const;
-		int								getClientCount() const;
 		
-		bool							isOperator(int fd) const;
 		void							promoteOperator(int fd);
 		void							demoteOperator(int fd);
 		
 		const std::map<int, bool>&		getMembers() const;// is it nessary?
-
-		void setTopic(const std::string& topic);
-		const std::string& getTopic() const;
 		
-		void setTopicRestricted(bool value);
-		bool isTopicRestricted() const;
+		
+		
+		void							setInviteOnly(bool value);
+		bool							isInviteOnly() const;
+		void							usedInvite(int fd);
+		
+		
+		/// getters ////
+		int								getClientCount() const;
+		const std::string& 				getTopic() const;
+		int								getUserLimit() const;
+		const std::string&				getKey() const;
+		
+		/// setters ////
+		void 							setTopicRestricted(bool value);
+		void 							setTopic(const std::string& topic);
+		void							setUserLimit(int limit);
+		void							setKey(const std::string& key);
+		
+		/// bools ////
+		bool							hasClient(int fd) const;
+		bool							isOperator(int fd) const;
+		bool 							isTopicRestricted() const;
+		bool							hasKey() const;
+		bool							isFull() const;
+		bool							isInvited(int fd) const;
 
-		void setInviteOnly(bool value);
-		bool isInviteOnly() const;
-		void usedInvite(int fd);
-
-		void setKey(const std::string& key);
-		const std::string& getKey() const;
-		bool hasKey() const;
-
-		void setUserLimit(int limit);
-		int getUserLimit() const;
-
-		bool isFull() const;
 
 		void inviteClient(int fd);
-		bool isInvited(int fd) const;
 		
 		static bool isValidName(const std::string& name);
 		const std::string& getName() const;
