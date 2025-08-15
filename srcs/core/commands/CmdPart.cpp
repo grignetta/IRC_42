@@ -49,11 +49,12 @@ void Server::handlePart(int fd, std::istringstream& iss)
 					+ "\r\n";
 
 	// Broadcast to all members
-	for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
-		 m != ch.getMembers().end(); ++m)
-	{
-		sendMsg(m->first, msg);
-	}
+	broadcastToChannel(ch, msg);
+	// for (std::map<int,bool>::const_iterator m = ch.getMembers().begin();
+	// 	 m != ch.getMembers().end(); ++m)
+	// {
+	// 	sendMsg(m->first, msg);
+	// }
 
 	// Reassign operator if needed
 	if (ch.isOperator(fd)) {
