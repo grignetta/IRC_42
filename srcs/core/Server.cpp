@@ -170,5 +170,5 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 	else if (command == "PING")//only for weechat
 		handlePing(fd, iss);
 	else
-		sendMsg(fd, "421 " + command + " :Unknown command\r\n");
+		sendMsg(fd, ":ircserv 421 " + command + " :Unknown command\r\n");
 }

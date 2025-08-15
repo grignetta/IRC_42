@@ -7,7 +7,7 @@ void Server::handlePrivMsg(int fd, std::istringstream& iss)
 	Client& sender = _clients[fd];
 	if (!sender.isRegistered())
 	{
-		sendNumeric(fd, 451, "*", "Y:ou have not registered");
+		sendNumeric(fd, 451, "*", ":You have not registered");
 		return;
 	}
 
@@ -64,7 +64,7 @@ void Server::handlePrivMsg(int fd, std::istringstream& iss)
 			// MESSEAGE TO THE CHANNEL
 			if (!ch->hasClient(fd))
 			{
-				sendNumeric(fd, 404, t, "::Cannot send to channel");
+				sendNumeric(fd, 404, t, ":Cannot send to channel");
 				continue;
 			}
 			const std::string out = prefix + " PRIVMSG " + t + " :" + text + "\r\n";
