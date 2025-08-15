@@ -262,11 +262,11 @@ void Server::applyChannelModes(int fd,
 //             break;
 //         }
         // Other errors
-        std::cerr << "sendMsg error to fd " << fd << ": " << strerror(errno);
-        break; // optionally close fd on fatal errors
-    }
+//        std::cerr << "sendMsg error to fd " << fd << ": " << strerror(errno);
+//        break; // optionally close fd on fatal errors
+//    }
 	//what
-}
+//}
 
 void Server::broadcastToChannel(const Channel& ch, const std::string& message)
 {
