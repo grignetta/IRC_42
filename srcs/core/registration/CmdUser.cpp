@@ -42,6 +42,10 @@ void Server::handleUser(int fd, std::istringstream& iss)
 		sendNumeric(fd, 461, "*", "USER :Not enough parameters (realname must be prefixed with ':')");
 		return;
 	}
+	if (realname.empty()) { //check again for empty after removing trailing spaces
+		sendNumeric(fd, 461, "*", "USER :Not enough parameters");
+		return;
+	}
 	
 	if (!client.getUsername().empty())
 	{
