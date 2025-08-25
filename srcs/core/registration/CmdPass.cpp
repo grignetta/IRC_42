@@ -8,7 +8,7 @@ void Server::handlePass(int fd, std::istringstream& iss)
 	Client& client = _clients[fd];
 	if (client.passApv())  // Add a flag in Client class to track this
 	{
-		sendNumeric(fd, 462, client.getNickname(), "You may not reregister"); // ERR_ALREADYREGISTERED
+		sendNumeric(fd, 462, client.getNickname(), ":You may not reregister"); // ERR_ALREADYREGISTERED
 		return;
 	}
 	if (password.empty())

@@ -50,27 +50,30 @@ bool Client::isRegistered() const
 	return _registered;
 }
 
-void Client::setNickname(const std::string& nick)
+bool Client::setNickname(const std::string& nick)
 {
 	if (!isValidNickname(nick)) {
-        throw std::invalid_argument("Invalid IRC nickname: " + nick);
+        return false;
     }
 	_nickname = nick;
+	return true;
 }
 
-void Client::setUsername(const std::string& user)
+bool Client::setUsername(const std::string& user)
 {
 	if (!isValidUsername(user)) {
-        throw std::invalid_argument("Invalid IRC username: " + user);
+        return false;
     }
 	_username = user;
+	return true;
 }
 
-void Client::setRealname(const std::string& user)
+bool Client::setRealname(const std::string& user)
 {
 	if (user.size() > 50)  //what is max for us?
-        throw std::invalid_argument("Realname too long.");
+        return false;
 	_realname = user;
+	return true;
 }
 
 void Client::setRegistered(bool reg)

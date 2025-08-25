@@ -13,6 +13,7 @@ class PollEventLoop : public IEventLoop
 		//int wait();
 		std::vector<int> wait();
 		void addFd(int clientFd);
+		void removeFd(int clientFd);
 	private:
 		std::vector<pollfd> _pollFds;
 

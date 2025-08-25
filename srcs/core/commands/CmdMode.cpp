@@ -11,7 +11,7 @@
 void Server::handleMode(int fd, std::istringstream& iss)
 {
 	if (!_clients[fd].isRegistered())
-		return sendNumeric(fd, 451, "*", "You have not registered");
+		return sendNumeric(fd, 451, "*", ":You have not registered");
 	
 	std::string chanName;  iss >> chanName;
 	if (chanName.empty())
@@ -135,14 +135,14 @@ void Server::applyChannelModes(int fd,
 			{
 				if (paramIndex >= params.size())
 				{
-					sendNumeric(fd, 472, ch.getName(), ":no one in this nickname");
+					sendNumeric(fd, 461, "MODE", ":Not enough parameters");
 					break;
 				}
 				int targetFd = getClientFdWithNick(params[paramIndex]);
-				if (targetFd == -1) { sendNumeric(fd, 472, ch.getName(), ":no one in this nickname"); paramIndex++; break; } 
+				if (targetFd == -1) { sendNumeric(fd, 401, params[paramIndex], ":No such nick/channel"); paramIndex++; break; } 
 				if (!ch.hasClient(targetFd))
     			{
-    			    sendNumeric(fd, 472, ch.getName(), ":user not in channel");
+    			    sendNumeric(fd, 441, params[paramIndex] + " " + ch.getName(), ":They aren't on that channel");
     			    paramIndex++;
     			    break;
     			}
@@ -182,7 +182,7 @@ void Server::applyChannelModes(int fd,
 						paramIndex++;
 					}else
 					{
-						sendNumeric(fd, 472, ch.getName(), ":not enough parameter");
+						sendNumeric(fd, 461, "MODE", ":Not enough parameters");
 						break;
 					}
 
@@ -198,7 +198,7 @@ void Server::applyChannelModes(int fd,
 				{
 					if (paramIndex >= params.size())
                     {
-                        sendNumeric(fd, 472, ch.getName(), ":not enough parameter");
+                        sendNumeric(fd, 461, "MODE", ":Not enough parameters");
                         break;
                     }
 					int limit = std::atoi(params[paramIndex].c_str());
@@ -215,14 +215,16 @@ void Server::applyChannelModes(int fd,
 			} break;
 			default :
 			{
-				modesAdded += ' ';
-				sendNumeric(fd, 472, ch.getName(), ":is unknown mode char");
+				//modesAdded += ' ';
+				std::string offending(1, c);
+				//sendNumeric(fd, 472, ch.getName(), ":is unknown mode char");
+				sendNumeric(fd, 472, offending, ":is unknown mode char to me");
 				break;
 			}
 		}
 	}
 
-	if (!modesAdded.empty())
+	if (!modesAdded.empty() && modesAdded != "+" && modesAdded != "-")
 	{
 		Client& client = _clients[fd];
 		std::string announce = ":" + client.getNickname() + "!" + client.getUsername() + "@host "

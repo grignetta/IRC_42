@@ -77,7 +77,7 @@ class Server
 		void		handleMode(int fd, std::istringstream& iss);
 		void		handlePart(int fd, std::istringstream& iss); // Missing
 		void		handlePing(int fd, std::istringstream& iss); // For weechat compatibility
-		//void handleQuit(int fd, std::istringstream& iss); // Missing
+		void        handleQuit(int fd, std::istringstream& iss);
 
 		// --- Helper Functions ---
 		void		checkRegistration(Client& client);
@@ -86,6 +86,8 @@ class Server
 		void		announceJoin(Channel& channel, int fd);
 		void		sendNamesReply(Channel& channel, int fd);
 		void		sendChannelTopic(Channel& channel, int fd);
+        void        disconnectClient(int fd);
+		void        broadcastQuitToChannels(int fd, const std::string& quitMsg);
 		
 		// CMD MODE
 		void		applyChannelModes(int fd, Channel& ch, const std::string& modeSpec, const std::vector<std::string>& params); 

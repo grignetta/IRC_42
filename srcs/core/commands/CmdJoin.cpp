@@ -8,6 +8,11 @@ static bool isJoinZeroToken(std::string s) {
 
 void Server::handleJoin(int fd, std::istringstream& iss)
 {
+    if (!_clients[fd].isRegistered()) {
+        sendNumeric(fd, 451, "*", ":You have not registered");
+        return;
+    }
+
 	std::string chanName, key;
 	iss >> chanName >> key;
 

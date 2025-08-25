@@ -8,12 +8,12 @@ void Server::handleNick(int fd, std::istringstream& iss)
 	Client& client = _clients[fd];
 	if (!client.passApv())
 	{
-		sendNumeric(fd, 464, "*", ":Password incorrect"); // ERR_NONICKNAMEGIVEN
+		sendNumeric(fd, 451, "*", ":You have not registered"); // ERR_NONICKNAMEGIVEN
 		return;
 	}
 	if (nickname.empty())
 	{
-		sendNumeric(fd, 431, "*", "No nickname given"); // ERR_NONICKNAMEGIVEN
+		sendNumeric(fd, 431, "*", ":No nickname given"); // ERR_NONICKNAMEGIVEN
 		return;
 	}
 	// if (nickname.erroneusNick()) - develop this part
@@ -29,7 +29,12 @@ void Server::handleNick(int fd, std::istringstream& iss)
 			return;
 		}
 	}
-	client.setNickname(nickname);
+	
+	if (!client.setNickname(nickname)) {
+		sendNumeric(fd, 432, nickname, ":Erroneous nickname");
+		return;
+	}
+	
 	//I did this Change here and in USER because my registeration was always giving an error
 	// client.incrementRegisterNickUserNames(1);
 	// if (client.getRegisterNickUserNames() == 2)

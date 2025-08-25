@@ -11,6 +11,7 @@ class IEventLoop
 		//virtual int wait() = 0;
 		virtual std::vector<int> wait() = 0;
 		virtual void addFd(int clientFd) = 0;
+		virtual void removeFd(int clientFd) = 0;
 		virtual ~IEventLoop() {}
 };
 

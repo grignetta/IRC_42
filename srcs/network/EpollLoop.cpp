@@ -49,4 +49,10 @@ void EpollEventLoop::addFd(int clientFd) {
                               + strerror(errno));
 }
 
+void EpollEventLoop::removeFd(int clientFd) {
+    if (epoll_ctl(_epollFd, EPOLL_CTL_DEL, clientFd, NULL) == -1)
+        throw SocketException(std::string("epoll_ctl DEL client failed: ") 
+                              + strerror(errno));
+}
+
 #endif

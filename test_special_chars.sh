@@ -2,22 +2,24 @@
 
 echo "=== Testing special characters ==="
 
-# Test with various special characters
+# Test with VALID special characters (according to IRC RFC)
 {
     echo "PASS password123"
-    echo "NICK tëst"  # Special characters in nick
-    echo "USER tëst 0 * :Tëst Üser with spëcial chars"
-    echo "JOIN #tëst-chännël"
-    echo "PRIVMSG #tëst-chännël :Hëllö wörld! 🌍"
-    echo "TOPIC #tëst-chännël :Tëst töpic with émojis 😀"
+    echo "NICK test_user"  # Underscore is valid
+    echo "USER test_user 0 * :Test User"
+    echo "JOIN #test-channel"  # Hyphen is valid in channels
+    echo "PRIVMSG #test-channel :Regular ASCII message"
+    echo "TOPIC #test-channel :Topic with [brackets] and |pipes|"
+    echo "QUIT :Leaving"
 } | nc localhost 6667 &
 
-# Test with control characters
+# Test boundary cases
 {
-    echo "PASS password123"
-    echo "NICK control"
-    printf "USER control 0 * :User with\x07bell\x08backspace\n"
-    printf "PRIVMSG #test :Message with\x00null\x01char\n"
+    echo "PASS password123"  
+    echo "NICK a"  # Very short nick
+    echo "USER a 0 * :Short"
+    echo "JOIN #a"
+    echo "QUIT :Short test"
 } | nc localhost 6667 &
 
 wait

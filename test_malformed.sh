@@ -11,6 +11,7 @@ echo "Testing invalid commands..."
     echo "123456789"
     echo ""  # Empty line
     echo "   "  # Spaces only
+    echo "QUIT"
 } | nc localhost 6667 &
 
 # Test commands with missing parameters
@@ -23,6 +24,7 @@ echo "Testing commands with missing parameters..."
     echo "INVITE"         # Missing parameters
     echo "KICK"           # Missing parameters
     echo "PRIVMSG"        # Missing parameters
+    echo "QUIT"
 } | nc localhost 6667 &
 
 wait

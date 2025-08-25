@@ -1,3 +1,21 @@
 username and nickname controll
 IRC (Internet Relay Chat)
 do we want to normalize?
+
+# Create 50+ simultaneous connections
+for i in {1..50}; do
+    (echo -e "PASS password123\nNICK user$i\nUSER user$i 0 * :User $i\nJOIN #stress\nPRIVMSG #stress :Hello from user$i" | nc localhost 6667) &
+done
+wait
+
+So far I tested:
+- malformed messages ( test_malformed.sh file and manual testing)
+- buffer limits/long line > 510
+- incomplete messages (fix with incomplete user message - it was accepting and sending welcome message without the real name after colon)
+- registration, buffer limits, basic channel ops
+- if the nickname isn't set and is empty, it is not shown, which is according to the protocol
+- fixed duplicate JOIN and other messages
+- 366 END OF NAMES goes only to the joiner fixed
+
+
+
