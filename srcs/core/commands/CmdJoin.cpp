@@ -8,6 +8,11 @@ static bool isJoinZeroToken(std::string s) {
 
 void Server::handleJoin(int fd, std::istringstream& iss)
 {
+    if (!_clients[fd].isRegistered()) {
+        sendNumeric(fd, 451, "*", ":You have not registered");
+        return;
+    }
+
 	std::string chanName, key;
 	iss >> chanName >> key;
 
@@ -24,17 +29,19 @@ void Server::handleJoin(int fd, std::istringstream& iss)
 	}
 
 	Channel& channel = getOrCreateChannel(chanName, fd);
-	
-	if (!channel.hasClient(fd) && !tryJoinChannel(fd, channel, key))
-		return;
+
+
+	if (!channel.hasClient(fd) && !tryJoinChannel(fd, channel, key)) 
+		return; //I just separated the logic below
 	//if (channel.getClientCount() >= 1 && !tryJoinChannel(fd, channel, key))
 		//return;
-	
+
 	announceJoin(channel, fd);
 	sendChannelTopic(channel, fd);
 	sendNamesReply(channel, fd);
-	std::string msg = ":ircserv 366 " + _clients[fd].getNickname() + " "+ chanName + ":End of NAMES list";
-	broadcastToChannel(channel, msg);
+	//std::string msg = ":ircserv 366 " + _clients[fd].getNickname() + " "+ chanName + " :End of NAMES list\n";
+	//broadcastToChannel(channel, msg);
+    sendNumeric(fd, 366, _clients[fd].getNickname(), chanName + " :End of NAMES list");
 }
 
 void Server::leaveAllChannels(int fd, const std::string& reason)

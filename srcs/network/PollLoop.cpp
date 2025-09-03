@@ -34,4 +34,13 @@ void PollEventLoop::addFd(int clientFd) {
     _pollFds.push_back(pfd);
 }
 
+void PollEventLoop::removeFd(int clientFd) {
+    for (std::vector<pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it) {
+        if (it->fd == clientFd) {
+            _pollFds.erase(it);
+            break;
+        }
+    }
+}
+
 #endif

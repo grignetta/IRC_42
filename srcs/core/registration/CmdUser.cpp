@@ -8,7 +8,7 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	Client& client = _clients[fd];
 	if (!client.passApv())
 	{
-		sendNumeric(fd, 464, "*", ":Password incorrect"); // ERR_NONICKNAMEGIVEN
+		sendNumeric(fd, 451, "*", ":You have not registered"); // ERR_NONICKNAMEGIVEN
 		return;
 	}
 	
@@ -42,14 +42,25 @@ void Server::handleUser(int fd, std::istringstream& iss)
 		sendNumeric(fd, 461, "*", "USER :Not enough parameters (realname must be prefixed with ':')");
 		return;
 	}
+	if (realname.empty()) { //check again for empty after removing trailing spaces
+		sendNumeric(fd, 461, "*", "USER :Not enough parameters");
+		return;
+	}
 	
 	if (!client.getUsername().empty())
 	{
-		sendNumeric(fd, 462, client.getNickname(), "You may not reregister"); // ERR_ALREADYREGISTERED
+		sendNumeric(fd, 462, client.getNickname(), ":You may not reregister"); // ERR_ALREADYREGISTERED
 		return;
 	}
 	// ADD username control USERLEN
-	client.setUsername(username);
+	if (!client.setUsername(username)) {
+		sendNumeric(fd, 432, username, ":Invalid username");
+		return;
+	}
+	if (!client.setRealname(realname)) {
+		sendNumeric(fd, 432, realname, ":Realname too long");
+		return;
+	}
 	//I did this Change here and in NICK because my registeration was always giving an error
 	// client.incrementRegisterNickUserNames(1);
 	// if (client.getRegisterNickUserNames() == 2)

@@ -47,9 +47,9 @@ class Client
 
 
 		//Setters
-		void setNickname(const std::string& nick);
-		void setUsername(const std::string& user);
-		void setRealname(const std::string& user);
+		bool setNickname(const std::string& nick);
+		bool setUsername(const std::string& user);
+		bool setRealname(const std::string& user);
 		void setRegistered(bool registered);
 		void setOperator();
 		void incrementRegisterNickUserNames(int increment);

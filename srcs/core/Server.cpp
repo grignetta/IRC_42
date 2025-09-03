@@ -112,7 +112,7 @@ void Server::handleClientMsg(int fd)
 	ssize_t bytes = recv(fd, buffer, sizeof(buffer) - 1, 0);
 	if (bytes <= 0)
 	{
-		//disconnectClient(fd); // EOF or error
+		disconnectClient(fd); // EOF or error
 		return;
 	}
 	buffer[bytes] = '\0';
@@ -145,6 +145,8 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 	iss >> command;
 	
 	std::transform(command.begin(), command.end(), command.begin(), ::toupper);
+	if (command.empty())
+        return;
 	if (command == "PASS")
 		handlePass(fd, iss);
 	else if (command == "NICK")
@@ -159,8 +161,8 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 		handlePart(fd, iss);
 	else if (command == "KICK")
 		handleKick(fd, iss);
-	//else if (command == "QUIT")
-		//handleQuit(fd, iss);
+	else if (command == "QUIT")
+		handleQuit(fd, iss);
 	else if (command == "INVITE")
 		handleInvite(fd, iss);
 	else if (command == "TOPIC")
@@ -170,5 +172,79 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 	else if (command == "PING")//only for weechat
 		handlePing(fd, iss);
 	else
-		sendMsg(fd, "421 " + command + " :Unknown command\r\n");
+		sendMsg(fd, ":ircserv 421 " + command + " :Unknown command\r\n");
+}
+
+void Server::disconnectClient(int fd)
+{
+    // Remove client from all channels first
+    for (std::map<std::string, Channel>::iterator chanIt = _channels.begin(); 
+         chanIt != _channels.end(); ++chanIt) 
+    {
+        if (chanIt->second.hasClient(fd)) {
+            chanIt->second.removeClient(fd);
+            
+            // If channel becomes empty, remove
+            if (chanIt->second.getMembers().empty()) {
+                _channels.erase(chanIt);
+                break;
+            }
+        }
+    }
+    
+    // Remove from event loop
+    _eventLoop.removeFd(fd);
+    
+    // Close the socket
+    close(fd);
+    
+    // Remove from clients map
+    _clients.erase(fd);
+    
+    std::cout << "Disconnected client fd=" << fd << std::endl;
+}
+
+void Server::handleQuit(int fd, std::istringstream& iss)
+{
+    std::string reason;
+    std::getline(iss, reason);
+    
+    // Send quit message to all channels the user is in
+    Client& client = _clients[fd];
+    if (client.isRegistered()) {
+        std::string quitMsg = ":" + client.getNickname() + "!" + 
+                             client.getUsername() + "@host QUIT :" + reason + "\r\n";
+        
+        // Broadcast to all channels user was in
+        broadcastQuitToChannels(fd, quitMsg);
+    }
+    
+    // Close the connection
+    disconnectClient(fd);
+}
+
+void Server::broadcastQuitToChannels(int fd, const std::string& quitMsg)
+{
+    // Iterate through all channels to find ones the user was in
+    for (std::map<std::string, Channel>::iterator chanIt = _channels.begin(); 
+         chanIt != _channels.end(); ++chanIt) 
+    {
+        Channel& channel = chanIt->second;
+        
+        // If the user was in this channel, broadcast quit message to all other members
+        if (channel.hasClient(fd)) {
+            const std::map<int, bool>& members = channel.getMembers();
+            
+            for (std::map<int, bool>::const_iterator memberIt = members.begin(); 
+                 memberIt != members.end(); ++memberIt) 
+            {
+                int memberFd = memberIt->first;
+                
+                // Don't send quit message to the user who is quitting
+                if (memberFd != fd) {
+                    sendMsg(memberFd, quitMsg);
+                }
+            }
+        }
+    }
 }
