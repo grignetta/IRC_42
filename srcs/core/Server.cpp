@@ -177,19 +177,26 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 
 void Server::disconnectClient(int fd)
 {
-    // Remove client from all channels first
+    // Remove client from all channels and collect empty channels
+    std::vector<std::string> channelsToRemove;
+    
     for (std::map<std::string, Channel>::iterator chanIt = _channels.begin(); 
          chanIt != _channels.end(); ++chanIt) 
     {
         if (chanIt->second.hasClient(fd)) {
             chanIt->second.removeClient(fd);
             
-            // If channel becomes empty, remove
+            // If channel becomes empty, mark for removal
             if (chanIt->second.getMembers().empty()) {
-                _channels.erase(chanIt);
-                break;
+                channelsToRemove.push_back(chanIt->first);
             }
         }
+    }
+    
+    // Now safely remove empty channels
+    for (std::vector<std::string>::iterator it = channelsToRemove.begin();
+         it != channelsToRemove.end(); ++it) {
+        _channels.erase(*it);
     }
     
     // Remove from event loop
