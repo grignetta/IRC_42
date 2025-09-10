@@ -220,7 +220,7 @@ void Server::handleQuit(int fd, std::istringstream& iss)
     Client& client = _clients[fd];
     if (client.isRegistered()) {
         std::string quitMsg = ":" + client.getNickname() + "!" +
-                             client.getUsername() + "@host QUIT :" + reason + "\r\n";
+                             client.getUsername() + "@" + client.getHostname() + " QUIT :" + reason + "\r\n";
 
         // Broadcast to all channels user was in
         broadcastQuitToChannels(fd, quitMsg);

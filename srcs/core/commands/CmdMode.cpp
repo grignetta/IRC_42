@@ -227,8 +227,8 @@ void Server::applyChannelModes(int fd,
 	if (!modesAdded.empty() && modesAdded != "+" && modesAdded != "-")
 	{
 		Client& client = _clients[fd];
-		std::string announce = ":" + client.getNickname() + "!" + client.getUsername() + "@host "
-		                      "MODE " + ch.getName() + " " + modesAdded;
+		std::string announce = ":" + client.getNickname() + "!" + client.getUsername() + "@" + client.getHostname() +
+		                      " MODE " + ch.getName() + " " + modesAdded;
 
 		// If you have params that should follow (key, limit, nick, etc.)
 		for (size_t i = 0; i < params.size(); ++i)
