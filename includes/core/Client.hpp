@@ -54,8 +54,6 @@ class Client
 		void setOperator();
 		void incrementRegisterNickUserNames(int increment);
 		
-
-
 		void appendToBuffer(const std::string& data);// { _readBytes += data; }
 		std::string& getBuffer();// { return _readBytes; }
 		void sendMessage(const std::string& message);

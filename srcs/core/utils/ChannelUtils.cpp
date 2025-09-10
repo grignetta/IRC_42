@@ -37,7 +37,7 @@ void Server::announceJoin(Channel& channel, int fd)
 {
 	Client& client = _clients[fd];
 	std::string msg = ":" + client.getNickname() + "!" +
-		client.getUsername() + "@localhost JOIN " + channel.getName() + "\r\n";
+		client.getUsername() + "@" + client.getHostname() + " JOIN " + channel.getName() + "\r\n";
 
 	for (std::map<int, bool>::const_iterator it = channel.getMembers().begin(); it != channel.getMembers().end(); ++it)
 	{

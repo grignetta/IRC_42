@@ -17,5 +17,8 @@ So far I tested:
 - fixed duplicate JOIN and other messages
 - 366 END OF NAMES goes only to the joiner fixed
 
+Dasha:
+- mode #chan +l 0 - set to return an error. + added overflowcheck. only numbers from 1 to INT_MAX are acceptable
+
 
 

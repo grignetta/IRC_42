@@ -159,7 +159,7 @@ void Server::applyChannelModes(int fd,
     			else
     			{
     			    // avoid duplicate -o
-    			    if (ch.isOperator(targetFd))
+    			    if (ch.isOperator(targetFd) && ch.countOperators() > 1)
     			    {
     			        ch.demoteOperator(targetFd);
     			        changed = true;
@@ -201,8 +201,15 @@ void Server::applyChannelModes(int fd,
                         sendNumeric(fd, 461, "MODE", ":Not enough parameters");
                         break;
                     }
-					int limit = std::atoi(params[paramIndex].c_str());
-					if (limit < 0) limit = 0;
+					//int limit = std::atoi(params[paramIndex].c_str());
+					int limit;
+					if (!safeParseInt(params[paramIndex], limit) || limit < 1)
+					{
+						std::ostringstream oss;
+						oss << params[paramIndex];
+						sendNumeric(fd, 472, oss.str(), " :is unknown mode char to me");
+						break;
+					} 
 					ch.setUserLimit(limit);
 					paramIndex++;
 					modesAdded += 'l';
@@ -227,8 +234,8 @@ void Server::applyChannelModes(int fd,
 	if (!modesAdded.empty() && modesAdded != "+" && modesAdded != "-")
 	{
 		Client& client = _clients[fd];
-		std::string announce = ":" + client.getNickname() + "!" + client.getUsername() + "@host "
-		                      "MODE " + ch.getName() + " " + modesAdded;
+		std::string announce = ":" + client.getNickname() + "!" + client.getUsername() + "@" + client.getHostname() +
+		                      " MODE " + ch.getName() + " " + modesAdded;
 
 		// If you have params that should follow (key, limit, nick, etc.)
 		for (size_t i = 0; i < params.size(); ++i)

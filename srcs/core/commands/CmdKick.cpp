@@ -70,7 +70,7 @@ void Server::execKick(Channel& channel, int kickerFd, const std::string& targetN
 	Client& kicker = _clients[kickerFd];
 	std::string actualComment = comment.empty() ? kicker.getNickname() : comment;
 	std::string msg = ":" + kicker.getNickname() + "!" + kicker.getUsername() +
-		"@localhost KICK " + channel.getName() + " " + targetNick + " :" + actualComment + "\r\n";// replace localhost with real hostname! Ask Deniz
+		"@" + kicker.getHostname() + " KICK " + channel.getName() + " " + targetNick + " :" + actualComment + "\r\n";
 
 	for (std::map<int, bool>::const_iterator it = channel.getMembers().begin();
 		 it != channel.getMembers().end(); ++it)

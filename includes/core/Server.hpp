@@ -32,6 +32,8 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 
+#include <climits>
+
 #define BUFFER_SIZE 1024
 #define USERLEN 12 //or move to Client.hpp?
 
@@ -127,5 +129,7 @@ class Server
 		// void sendMessage(int fd, const std::string&iss); // Duplicate of sendMsg?
 		// void removeClient(int clientFd); // Should be implemented for disconnects
 };
+
+bool safeParseInt(const std::string &s, int &out);
 
 #endif

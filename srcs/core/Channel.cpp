@@ -137,3 +137,13 @@ const std::string& Channel::getName() const {
 	return _name;
 }
 
+int Channel::countOperators() const
+{
+	int count = 0;
+	for (std::map<int, bool>::const_iterator it = _members.begin(); it != _members.end(); ++it)
+	{
+		if (it->second)
+			++count;
+	}
+	return count;
+}
