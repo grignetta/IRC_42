@@ -211,6 +211,11 @@ void Server::handleQuit(int fd, std::istringstream& iss)
     std::string reason;
     std::getline(iss, reason);
 
+	if (!_clients[fd].isRegistered()) {
+        sendNumeric(fd, 451, "*", ":You have not registered");
+        return;
+    }
+
     // Send quit message to all channels the user is in
     Client& client = _clients[fd];
     if (client.isRegistered()) {
