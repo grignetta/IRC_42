@@ -59,6 +59,8 @@ bool Server::permitKick(int fd, Channel& channel, const std::string& targetNick,
 		sendNumeric(fd, 441, targetNick, channel.getName() + " :They aren't on that channel");
 		return false;
 	}
+	if (channel.isOperator(targetFd) && channel.countOperators() <= 1)
+		return false;
 	return true;
 }
 

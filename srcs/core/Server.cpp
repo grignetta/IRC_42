@@ -148,7 +148,7 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 
 	std::transform(command.begin(), command.end(), command.begin(), ::toupper);
 	if (command.empty())
-        return;
+		return;
 	if (command == "PASS")
 		handlePass(fd, iss);
 	else if (command == "NICK")
@@ -179,79 +179,98 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 
 void Server::disconnectClient(int fd)
 {
-    // Remove client from all channels first
-    for (std::map<std::string, Channel>::iterator chanIt = _channels.begin();
-         chanIt != _channels.end(); ++chanIt)
-    {
-        if (chanIt->second.hasClient(fd)) {
-            chanIt->second.removeClient(fd);
+	// Remove client from all channels first
+	for (std::map<std::string, Channel>::iterator chanIt = _channels.begin();
+		 chanIt != _channels.end(); ++chanIt)
+	{
+		if (chanIt->second.hasClient(fd)) {
+			chanIt->second.removeClient(fd);
 
-            // If channel becomes empty, remove
-            if (chanIt->second.getMembers().empty()) {
-                _channels.erase(chanIt);
-                break;
-            }
-        }
-    }
+			// If channel becomes empty, remove
+			if (chanIt->second.getMembers().empty()) {
+				_channels.erase(chanIt);
+				break;
+			}
+		}
+	}
 
-    // Remove from event loop
-    _eventLoop.removeFd(fd);
+	// Remove from event loop
+	_eventLoop.removeFd(fd);
 
-    // Close the socket
-    close(fd);
+	// Close the socket
+	close(fd);
 
-    // Remove from clients map
-    _clients.erase(fd);
+	// Remove from clients map
+	_clients.erase(fd);
 
-    std::cout << "Disconnected client fd=" << fd << std::endl;
+	std::cout << "Disconnected client fd=" << fd << std::endl;
 }
 
 void Server::handleQuit(int fd, std::istringstream& iss)
 {
-    std::string reason;
-    std::getline(iss, reason);
+	std::string reason;
+	std::getline(iss, reason);
 
 	if (!_clients[fd].isRegistered()) {
-        sendNumeric(fd, 451, "*", ":You have not registered");
-        return;
-    }
+		sendNumeric(fd, 451, "*", ":You have not registered");
+		return;
+	}
+	
+	for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+	{
+		Channel& channel = it->second;
+		if (channel.hasClient(fd) && channel.isOperator(fd) && channel.countOperators() == 1)
+		{
+			std::vector<int> toKick;
+			const std::map<int, bool>& members = channel.getMembers();
+			for (std::map<int, bool>::const_iterator memberIt = members.begin(); memberIt != members.end(); ++memberIt) {
+				if (memberIt->first != fd)
+					toKick.push_back(memberIt->first);
+			}
+			for (size_t i = 0; i < toKick.size(); ++i) {
+				int memberFd = toKick[i];
+				std::string targetNick = _clients[memberFd].getNickname();
+				execKick(channel, fd, targetNick, "No operators left in channel", memberFd);
+			}
+		}
+	}
 
-    // Send quit message to all channels the user is in
-    Client& client = _clients[fd];
-    if (client.isRegistered()) {
-        std::string quitMsg = ":" + client.getNickname() + "!" +
-                             client.getUsername() + "@" + client.getHostname() + " QUIT :" + reason + "\r\n";
+	// Send quit message to all channels the user is in
+	Client& client = _clients[fd];
+	if (client.isRegistered()) {
+		std::string quitMsg = ":" + client.getNickname() + "!" +
+							 client.getUsername() + "@" + client.getHostname() + " QUIT :" + reason + "\r\n";
 
-        // Broadcast to all channels user was in
-        broadcastQuitToChannels(fd, quitMsg);
-    }
+		// Broadcast to all channels user was in
+		broadcastQuitToChannels(fd, quitMsg);
+	}
 
-    // Close the connection
-    disconnectClient(fd);
+	// Close the connection
+	disconnectClient(fd);
 }
 
 void Server::broadcastQuitToChannels(int fd, const std::string& quitMsg)
 {
-    // Iterate through all channels to find ones the user was in
-    for (std::map<std::string, Channel>::iterator chanIt = _channels.begin();
-         chanIt != _channels.end(); ++chanIt)
-    {
-        Channel& channel = chanIt->second;
+	// Iterate through all channels to find ones the user was in
+	for (std::map<std::string, Channel>::iterator chanIt = _channels.begin();
+		 chanIt != _channels.end(); ++chanIt)
+	{
+		Channel& channel = chanIt->second;
 
-        // If the user was in this channel, broadcast quit message to all other members
-        if (channel.hasClient(fd)) {
-            const std::map<int, bool>& members = channel.getMembers();
+		// If the user was in this channel, broadcast quit message to all other members
+		if (channel.hasClient(fd)) {
+			const std::map<int, bool>& members = channel.getMembers();
 
-            for (std::map<int, bool>::const_iterator memberIt = members.begin();
-                 memberIt != members.end(); ++memberIt)
-            {
-                int memberFd = memberIt->first;
+			for (std::map<int, bool>::const_iterator memberIt = members.begin();
+				 memberIt != members.end(); ++memberIt)
+			{
+				int memberFd = memberIt->first;
 
-                // Don't send quit message to the user who is quitting
-                if (memberFd != fd) {
-                    sendMsg(memberFd, quitMsg);
-                }
-            }
-        }
-    }
+				// Don't send quit message to the user who is quitting
+				if (memberFd != fd) {
+					sendMsg(memberFd, quitMsg);
+				}
+			}
+		}
+	}
 }
