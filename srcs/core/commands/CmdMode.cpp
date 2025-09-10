@@ -159,7 +159,7 @@ void Server::applyChannelModes(int fd,
     			else
     			{
     			    // avoid duplicate -o
-    			    if (ch.isOperator(targetFd))
+    			    if (ch.isOperator(targetFd) && ch.countOperators() > 1)
     			    {
     			        ch.demoteOperator(targetFd);
     			        changed = true;

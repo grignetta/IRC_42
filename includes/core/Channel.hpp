@@ -49,7 +49,8 @@ class Channel
 
 
 		void inviteClient(int fd);
-		
+		int countOperators() const;
+
 		static bool isValidName(const std::string& name);
 		const std::string& getName() const;
 
