@@ -49,7 +49,7 @@ void Server::start()
 		std::vector<int> readyFds = _eventLoop.wait();
 		if (readyFds.empty())
 			continue;
-	
+
 		for (std::vector<int>::size_type i = 0; i < readyFds.size(); ++i)
 		{
 			int fd = readyFds[i];
@@ -71,7 +71,7 @@ void Server::acceptNewClient()
 	socklen_t clientLen = sizeof(clientAddr);
 
 	int clientSocket = accept(_serverS.fd_socket, reinterpret_cast<sockaddr*>(&clientAddr), &clientLen);
-	
+
 	if (clientSocket < 0)
 	{
 		std::cerr << "accept() failed: " << strerror(errno) << "\n";
@@ -133,8 +133,10 @@ void Server::handleClientMsg(int fd)
 		{
 			sendNumeric(fd, 421, "*", "<command> :Unknown command");//417 line toot long doesn't exist anymore
 			continue; // Skip processing this line
-		}	
+		}
 		parseAndExecCmd(fd, line); // NEXT STEP
+		if (_clients.find(fd) == _clients.end())
+			return; // Client might have been disconnected during command processing
 	}
 }
 
@@ -143,7 +145,7 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 	std::istringstream iss(line);
 	std::string command;
 	iss >> command;
-	
+
 	std::transform(command.begin(), command.end(), command.begin(), ::toupper);
 	if (command.empty())
         return;
@@ -178,12 +180,12 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 void Server::disconnectClient(int fd)
 {
     // Remove client from all channels first
-    for (std::map<std::string, Channel>::iterator chanIt = _channels.begin(); 
-         chanIt != _channels.end(); ++chanIt) 
+    for (std::map<std::string, Channel>::iterator chanIt = _channels.begin();
+         chanIt != _channels.end(); ++chanIt)
     {
         if (chanIt->second.hasClient(fd)) {
             chanIt->second.removeClient(fd);
-            
+
             // If channel becomes empty, remove
             if (chanIt->second.getMembers().empty()) {
                 _channels.erase(chanIt);
@@ -191,16 +193,16 @@ void Server::disconnectClient(int fd)
             }
         }
     }
-    
+
     // Remove from event loop
     _eventLoop.removeFd(fd);
-    
+
     // Close the socket
     close(fd);
-    
+
     // Remove from clients map
     _clients.erase(fd);
-    
+
     std::cout << "Disconnected client fd=" << fd << std::endl;
 }
 
@@ -208,17 +210,17 @@ void Server::handleQuit(int fd, std::istringstream& iss)
 {
     std::string reason;
     std::getline(iss, reason);
-    
+
     // Send quit message to all channels the user is in
     Client& client = _clients[fd];
     if (client.isRegistered()) {
-        std::string quitMsg = ":" + client.getNickname() + "!" + 
+        std::string quitMsg = ":" + client.getNickname() + "!" +
                              client.getUsername() + "@host QUIT :" + reason + "\r\n";
-        
+
         // Broadcast to all channels user was in
         broadcastQuitToChannels(fd, quitMsg);
     }
-    
+
     // Close the connection
     disconnectClient(fd);
 }
@@ -226,20 +228,20 @@ void Server::handleQuit(int fd, std::istringstream& iss)
 void Server::broadcastQuitToChannels(int fd, const std::string& quitMsg)
 {
     // Iterate through all channels to find ones the user was in
-    for (std::map<std::string, Channel>::iterator chanIt = _channels.begin(); 
-         chanIt != _channels.end(); ++chanIt) 
+    for (std::map<std::string, Channel>::iterator chanIt = _channels.begin();
+         chanIt != _channels.end(); ++chanIt)
     {
         Channel& channel = chanIt->second;
-        
+
         // If the user was in this channel, broadcast quit message to all other members
         if (channel.hasClient(fd)) {
             const std::map<int, bool>& members = channel.getMembers();
-            
-            for (std::map<int, bool>::const_iterator memberIt = members.begin(); 
-                 memberIt != members.end(); ++memberIt) 
+
+            for (std::map<int, bool>::const_iterator memberIt = members.begin();
+                 memberIt != members.end(); ++memberIt)
             {
                 int memberFd = memberIt->first;
-                
+
                 // Don't send quit message to the user who is quitting
                 if (memberFd != fd) {
                     sendMsg(memberFd, quitMsg);
