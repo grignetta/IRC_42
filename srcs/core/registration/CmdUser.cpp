@@ -11,7 +11,11 @@ void Server::handleUser(int fd, std::istringstream& iss)
 		sendNumeric(fd, 451, "*", ":You have not registered"); // ERR_NONICKNAMEGIVEN
 		return;
 	}
-	
+	if (client.getNickname().empty())
+	{
+		sendNumeric(fd, 431, "*", ":No nickname given"); 
+		return;
+	}
 	if (username.empty() || unused1.empty() || unused2.empty())
 	{
 		sendNumeric(fd, 461, "*", "USER :Not enough parameters");

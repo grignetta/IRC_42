@@ -6,6 +6,11 @@ void Server::handleNick(int fd, std::istringstream& iss)
 	iss >> nickname;
 	
 	Client& client = _clients[fd];
+	if (client.isRegistered())
+	{
+		sendNumeric(fd, 462, client.getNickname(), ":You may not reregister"); 
+		return;
+	}
 	if (!client.passApv())
 	{
 		sendNumeric(fd, 451, "*", ":You have not registered"); // ERR_NONICKNAMEGIVEN
@@ -40,5 +45,5 @@ void Server::handleNick(int fd, std::istringstream& iss)
 	// if (client.getRegisterNickUserNames() == 2)
 	// 	client.setRegistered(true);
 	
-	checkRegistration(client);
+	//checkRegistration(client);
 }
