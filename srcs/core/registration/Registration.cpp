@@ -2,8 +2,8 @@
 
 void Server::checkRegistration(Client& client)
 {
-	if (client.isRegistered())
-		return;
+	//if (client.isRegistered())
+		//return;
 
 	if (client.passApv() &&
 		!client.getNickname().empty() &&
