@@ -11,8 +11,15 @@ int main(int argc, char** argv)
 	
 	setupSignalHandlers();
 
-	int port = std::atoi(argv[1]);//is there cpp version?
+	if (!controlPort(argv[1]))
+		return 1;
+	int port = std::atoi(argv[1]);
 	std::string password = argv[2];
+	if (!controlPassword(password))
+	{
+		std::cerr << "Invalid password: cannot be empty, contain spaces, or exceed 64 characters\n";
+		return 1;
+	}
 
 	try
 	{

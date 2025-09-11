@@ -131,5 +131,7 @@ class Server
 };
 
 bool safeParseInt(const std::string &s, int &out);
+bool controlPort(char* argv);
+bool controlPassword(std::string& password);
 
 #endif
