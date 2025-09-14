@@ -16,9 +16,6 @@ class Client
 		bool _passApv;
 		bool _registered;
 		bool _operator;
-		
-		// when this is 2 set registed to true // just an idea open to suggestions
-		int registerNickUserNames;
 
 		std::string _readBytes;
 
@@ -39,7 +36,6 @@ class Client
 		const std::string& getUsername() const;
 		const std::string& getRealname() const;
 		const std::string& getHostname() const;
-		const int& getRegisterNickUserNames() const;
 
 		//Bools
 		bool isRegistered() const;
@@ -51,12 +47,9 @@ class Client
 		bool setUsername(const std::string& user);
 		bool setRealname(const std::string& user);
 		void setRegistered(bool registered);
-		void setOperator();
-		void incrementRegisterNickUserNames(int increment);
 		
 		void appendToBuffer(const std::string& data);// { _readBytes += data; }
 		std::string& getBuffer();// { return _readBytes; }
-		void sendMessage(const std::string& message);
 };
 
 #endif

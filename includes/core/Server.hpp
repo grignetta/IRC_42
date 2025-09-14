@@ -1,13 +1,11 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-
 #ifdef __linux__
 	#include "EpollLoop.hpp"
 #elif defined(__APPLE__)
 	#include "PollLoop.hpp"
 #endif
-
 
 #include "Socket.hpp"
 #include "Exception.hpp"
@@ -35,7 +33,7 @@
 #include <climits>
 
 #define BUFFER_SIZE 1024
-#define USERLEN 12 //or move to Client.hpp?
+#define USERLEN 12
 
 class Server
 {
@@ -59,7 +57,6 @@ class Server
 		#elif defined(__APPLE__)
 			PollEventLoop _eventLoop;
 		#endif
-		// std::vector<pollfd> _pollFds; // This should be part of your event loop class
 
 		// --- Core Server Logic ---
 		void		setupSocket();
@@ -78,7 +75,7 @@ class Server
 		void		handleTopic(int fd, std::istringstream& iss);
 		void		handleMode(int fd, std::istringstream& iss);
 		void		handlePart(int fd, std::istringstream& iss); // Missing
-		void		handlePing(int fd, std::istringstream& iss); // For weechat compatibility
+		//void		handlePing(int fd, std::istringstream& iss); // For weechat compatibility
 		void        handleQuit(int fd, std::istringstream& iss);
 
 		// --- Helper Functions ---
@@ -100,8 +97,6 @@ class Server
 		// CMD JOIN
 		void		leaveAllChannels(int fd, const std::string& reason);
 
-
-
 		int			findClient(const std::string& nickname) const;
 		bool		invitePerm(int inviterFd, int inviteeFd, const std::string& chanName);
 		void		processInvite(int inviterFd, int inviteeFd, const std::string& targetNick, const std::string& chanName);
@@ -110,24 +105,18 @@ class Server
 		bool		verifyKickParams(int fd, const std::string& chanName, const std::string& targetNick);
 		bool		permitKick(int fd, Channel& channel, const std::string& targetNick, int targetFd);
 		void		execKick(Channel& channel, int kickerFd, const std::string& targetNick, const std::string& comment, int targetFd);
-		//std::string getKickReason(int kickerFd, const std::string& comment);
 		
 		bool		verifyTopicParams(int fd, const std::string& chanName);
 		bool		permitTopicChange(int fd, Channel& channel, const std::string& chanName);
 		void		broadcastTopic(Channel& channel, int setterFd, const std::string& newTopic);
-		std::string updateTopic(std::istringstream& iss);//can be put outside of Server class!
+		std::string updateTopic(std::istringstream& iss);//can be put outside of Server class
 
 		// --- Messaging ---
 		void		sendMsg(int fd, const std::string& message);
 		void		sendNumeric(int fd, int code, const std::string& target, const std::string& message);
 
 		//utils
-		std::string parseTrailing(std::istream& in);//can be put outside of Server class!
-		// Note: The methods below seem redundant or misplaced
-		// bool passApv(); // Client state, should be in Client class
-		// void setPassApv(bool apv); // Client state, should be in Client class
-		// void sendMessage(int fd, const std::string&iss); // Duplicate of sendMsg?
-		// void removeClient(int clientFd); // Should be implemented for disconnects
+		std::string parseTrailing(std::istream& in);//can be put outside of Server class
 };
 
 bool safeParseInt(const std::string &s, int &out);
