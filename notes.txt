@@ -5,6 +5,9 @@
 - code action handlers (throuh enum?)
 - protect functions
 
+// Determine the channel type symbol (we assume public for now)
+	std::string visibility = "="; // = public, * private, @ secret
+
 
 
 

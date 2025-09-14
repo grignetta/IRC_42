@@ -5,7 +5,7 @@ void Server::handleInvite(int fd, std::istringstream& iss)
 	std::string targetNick, chanName;
 	iss >> targetNick >> chanName;
 
-	if (targetNick.empty() || chanName.empty())// is this check enough?
+	if (targetNick.empty() || chanName.empty())
 	{
 		sendNumeric(fd, 461, "INVITE", ":Not enough parameters");
 		return;
@@ -56,10 +56,10 @@ void Server::processInvite(int inviterFd, int inviteeFd, const std::string& targ
 	sendNumeric(inviterFd, 341, chanName, targetNick);
 	
 	Client& inviter = _clients[inviterFd];
-    const std::string prefix = ":" + inviter.getNickname() + "!" +
-                               inviter.getUsername() + "@" +
-                               inviter.getHostname();
-    const std::string line = prefix + " INVITE " + targetNick +
-                             " :" + chanName + "\r\n";
-    sendMsg(inviteeFd, line);
+	const std::string prefix = ":" + inviter.getNickname() + "!" +
+							   inviter.getUsername() + "@" +
+							   inviter.getHostname();
+	const std::string line = prefix + " INVITE " + targetNick +
+							 " :" + chanName + "\r\n";
+	sendMsg(inviteeFd, line);
 }

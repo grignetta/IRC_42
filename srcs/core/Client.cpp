@@ -1,19 +1,12 @@
 #include "Client.hpp"
-#include <sys/socket.h>  // for send()
+#include <sys/socket.h>
 
-// Client::Client(int fd)
-//   : _fd(fd)
-//   , _passApv(false)     // matches first in class
-//   , _registered(false)  // second
-//   , _operator(false)    // third
-// {}
 Client::Client(int fd, const std::string& host) :
 	_fd(fd),
 	_hostname(host),
 	_passApv(false),
 	_registered(false),
-	_operator(false),
-    registerNickUserNames(0)
+	_operator(false)
 {}
 
 int Client::getFd() const
@@ -37,12 +30,7 @@ const std::string& Client::getRealname() const
 }
 
 const std::string& Client::getHostname() const {
-    return _hostname;
-}
-
-void Client::sendMessage(const std::string& msg)
-{
-    ::send(_fd, msg.c_str(), msg.size(), 0);
+	return _hostname;
 }
 
 bool Client::isRegistered() const
@@ -53,8 +41,8 @@ bool Client::isRegistered() const
 bool Client::setNickname(const std::string& nick)
 {
 	if (!isValidNickname(nick)) {
-        return false;
-    }
+		return false;
+	}
 	_nickname = nick;
 	return true;
 }
@@ -62,8 +50,8 @@ bool Client::setNickname(const std::string& nick)
 bool Client::setUsername(const std::string& user)
 {
 	if (!isValidUsername(user)) {
-        return false;
-    }
+		return false;
+	}
 	_username = user;
 	return true;
 }
@@ -71,7 +59,7 @@ bool Client::setUsername(const std::string& user)
 bool Client::setRealname(const std::string& user)
 {
 	if (user.size() > 50)  //what is max for us?
-        return false;
+		return false;
 	_realname = user;
 	return true;
 }
@@ -101,52 +89,35 @@ bool Client::passApv() const
 	return _passApv;
 }
 
-//void setOperator()
-
-// void Client::sendMessage(const std::string& message)
-// {
-// 		::send(fd, message.c_str(), message.length(), 0);
-// }
-
 static const std::string kNickAllowed =
-    "abcdefghijklmnopqrstuvwxyz"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "0123456789"
-    "-[]\\`^{}";
+	"abcdefghijklmnopqrstuvwxyz"
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	"0123456789"
+	"-[]\\`^{}";
 
 static bool isLegalNickFirstChar(char c) {
-    return (std::isalpha(c) || std::string("[]\\`^{}").find(c) != std::string::npos);
+	return (std::isalpha(c) || std::string("[]\\`^{}").find(c) != std::string::npos);
 }
 
 bool Client::isValidNickname(const std::string& nick) {
-    if (nick.empty() || nick.size() > 9)
-        return false;
-    if (!isLegalNickFirstChar(nick[0]))
-        return false;
-    for (std::string::const_iterator it = nick.begin(); it != nick.end(); ++it) {
-        if (kNickAllowed.find(*it) == std::string::npos)
-            return false;
-    }
-    return true;
+	if (nick.empty() || nick.size() > 9)
+		return false;
+	if (!isLegalNickFirstChar(nick[0]))
+		return false;
+	for (std::string::const_iterator it = nick.begin(); it != nick.end(); ++it) {
+		if (kNickAllowed.find(*it) == std::string::npos)
+			return false;
+	}
+	return true;
 }
 
 bool Client::isValidUsername(const std::string& user) {
-    if (user.empty() || user.size() > 10)
-        return false;
-    for (std::size_t i = 0; i < user.size(); ++i) {
-        char c = user[i];
-        if (c == ' ' || c == '\r' || c == '\n')
-            return false;
-    }
-    return true;
-}
-
-void Client::incrementRegisterNickUserNames(int increment)
-{
-    registerNickUserNames += increment;
-}
-
-const int& Client::getRegisterNickUserNames() const
-{
-    return registerNickUserNames;
+	if (user.empty() || user.size() > 10)
+		return false;
+	for (std::size_t i = 0; i < user.size(); ++i) {
+		char c = user[i];
+		if (c == ' ' || c == '\r' || c == '\n')
+			return false;
+	}
+	return true;
 }

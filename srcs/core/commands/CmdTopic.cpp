@@ -45,7 +45,7 @@ void Server::broadcastTopic(Channel& channel, int setterFd, const std::string& n
 	const std::string& host = who.getHostname();
 
 	std::string announce = ":" + who.getNickname() + "!" + who.getUsername() +
-					   "@" + host + " TOPIC " + channel.getName() + " :" + newTopic + "\r\n";//control!
+					   "@" + host + " TOPIC " + channel.getName() + " :" + newTopic + "\r\n";
 	broadcastToChannel(channel, announce);
 	//sendMsg(setterFd, wire);
 }
@@ -68,7 +68,7 @@ void Server::handleTopic(int fd, std::istringstream& iss)
 	iss >> std::ws;
 	if (iss.peek() == std::char_traits<char>::eof())
 	{
-		sendChannelTopic(*channel, fd); // you already have this
+		sendChannelTopic(*channel, fd);
 		return;
 	}
 	if (!permitTopicChange(fd, *channel, chanName))
@@ -84,5 +84,5 @@ void Server::handleTopic(int fd, std::istringstream& iss)
 		return;
 	}
 	channel->setTopic(newTopic);
-	broadcastTopic(*channel, fd, newTopic);//not requested broadcasting to everyone?
+	broadcastTopic(*channel, fd, newTopic);
 }

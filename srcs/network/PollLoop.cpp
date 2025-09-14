@@ -20,27 +20,31 @@ std::vector<int> PollEventLoop::wait() {
 		throw std::runtime_error(std::string("poll() failed: ") + strerror(errno));
 
 	std::vector<int> readyFds;
-	for (std::vector<pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it) {
+	for (std::vector<pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
+	{
 		if (it->revents & POLLIN)
-    		readyFds.push_back(it->fd);
+			readyFds.push_back(it->fd);
 	}
 	return readyFds;
 }
 
-void PollEventLoop::addFd(int clientFd) {
-    pollfd pfd;
-    pfd.fd     = clientFd;
-    pfd.events = POLLIN;
-    _pollFds.push_back(pfd);
+void PollEventLoop::addFd(int clientFd)
+{
+	pollfd pfd;
+	pfd.fd     = clientFd;
+	pfd.events = POLLIN;
+	_pollFds.push_back(pfd);
 }
 
-void PollEventLoop::removeFd(int clientFd) {
-    for (std::vector<pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it) {
-        if (it->fd == clientFd) {
-            _pollFds.erase(it);
-            break;
-        }
-    }
+void PollEventLoop::removeFd(int clientFd)
+{
+	for (std::vector<pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
+	{
+		if (it->fd == clientFd) {
+			_pollFds.erase(it);
+			break;
+		}
+	}
 }
 
 #endif

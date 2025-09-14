@@ -21,11 +21,6 @@ void Server::handleNick(int fd, std::istringstream& iss)
 		sendNumeric(fd, 431, "*", ":No nickname given"); // ERR_NONICKNAMEGIVEN
 		return;
 	}
-	// if (nickname.erroneusNick()) - develop this part
-	// {
-	// 	sendNumeric(fd, 432, nickname, "Erroneous nickname"); // ERR_ERRONEUSNICKNAME
-	// 	return;
-	// }
 	for (std::map<int, Client>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (it->second.getNickname() == nickname && it->first != fd)
@@ -39,11 +34,6 @@ void Server::handleNick(int fd, std::istringstream& iss)
 		sendNumeric(fd, 432, nickname, ":Erroneous nickname");
 		return;
 	}
-	
-	//I did this Change here and in USER because my registeration was always giving an error
-	// client.incrementRegisterNickUserNames(1);
-	// if (client.getRegisterNickUserNames() == 2)
-	// 	client.setRegistered(true);
 	
 	//checkRegistration(client);
 }

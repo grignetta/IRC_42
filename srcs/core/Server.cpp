@@ -171,8 +171,8 @@ void Server::parseAndExecCmd(int fd, const std::string& line)
 		handleTopic(fd, iss);
 	else if (command == "MODE")
 		handleMode(fd, iss);
-	else if (command == "PING")//only for weechat
-		handlePing(fd, iss);
+	//else if (command == "PING")//only for weechat
+		//handlePing(fd, iss);
 	else
 		sendMsg(fd, ":ircserv 421 " + command + " :Unknown command\r\n");
 }
