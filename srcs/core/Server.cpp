@@ -110,11 +110,26 @@ void Server::handleClientMsg(int fd)
 {
 	char buffer[BUFFER_SIZE];
 	ssize_t bytes = recv(fd, buffer, sizeof(buffer) - 1, 0);
-	if (bytes <= 0)
+	
+	if (bytes == 0)
 	{
-		disconnectClient(fd); // EOF or error
+		disconnectClient(fd);
 		return;
 	}
+	else if (bytes < 0)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+		{
+			return;
+		}
+		else
+		{
+			std::cerr << "recv() error from fd " << fd << ": " << strerror(errno) << std::endl;
+			disconnectClient(fd);
+			return;
+		}
+	}
+	
 	buffer[bytes] = '\0';
 	Client& client = _clients[fd];
 	client.appendToBuffer(buffer);
