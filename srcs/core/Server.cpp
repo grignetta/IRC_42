@@ -33,7 +33,7 @@ void Server::setupSocket()
 	if (bind(_serverS.fd_socket, (struct sockaddr*)&_serverS.socket_addr, sizeof(_serverS.socket_addr)) < 0)
 		throw SocketException(std::string("Failed to bind socket: ") + strerror(errno));
 
-	if (listen(_serverS.fd_socket, 10) < 0)
+	if (listen(_serverS.fd_socket, SOMAXCONN) < 0)
 		throw SocketException(std::string("Failed to listen: ") + strerror(errno));
 
 	fcntl(_serverS.fd_socket, F_SETFL, O_NONBLOCK);// Set the server socket to non-blocking mode// should be changed to write as per subjedt?
@@ -70,7 +70,7 @@ void Server::acceptNewClient()
 	sockaddr_in clientAddr;
 	socklen_t clientLen = sizeof(clientAddr);
 
-	int clientSocket = accept(_serverS.fd_socket, reinterpret_cast<sockaddr*>(&clientAddr), &clientLen);
+	int clientSocket = accept(_serverS.fd_socket, reinterpret_cast<sockaddr*>(&clientAddr), &clientLen);//always an fd
 
 	if (clientSocket < 0)
 	{
@@ -82,19 +82,15 @@ void Server::acceptNewClient()
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) < 0)
 	{
 		std::cerr << "fcntl() failed: " << strerror(errno) << "\n";
-		// continue anyway
 	}
 
-	// Turn the client IP into a string
-	char hostbuf[INET_ADDRSTRLEN];
+	char hostbuf[INET_ADDRSTRLEN];// client IP -> a string
 	if (!inet_ntop(AF_INET, &clientAddr.sin_addr, hostbuf, sizeof(hostbuf)))
 	{
 		std::cerr << "inet_ntop() failed: " << strerror(errno) << "\n";
-		// fallback to empty string
 		hostbuf[0] = '\0';
 	}
 
-	// Construct Client with fd + hostname
 	_clients[clientSocket] = Client(clientSocket, std::string(hostbuf));
 	_eventLoop.addFd(clientSocket);
 
@@ -132,9 +128,9 @@ void Server::handleClientMsg(int fd)
 		if (line.length() > 510)
 		{
 			sendNumeric(fd, 421, "*", "<command> :Unknown command");//417 line toot long doesn't exist anymore
-			continue; // Skip processing this line
+			continue;
 		}
-		parseAndExecCmd(fd, line); // NEXT STEP
+		parseAndExecCmd(fd, line);
 		if (_clients.find(fd) == _clients.end())
 			return; // Client might have been disconnected during command processing
 	}
@@ -183,26 +179,21 @@ void Server::disconnectClient(int fd)
 	for (std::map<std::string, Channel>::iterator chanIt = _channels.begin();
 		 chanIt != _channels.end(); ++chanIt)
 	{
-		if (chanIt->second.hasClient(fd)) {
+		if (chanIt->second.hasClient(fd))
+		{
 			chanIt->second.removeClient(fd);
 
 			// If channel becomes empty, remove
-			if (chanIt->second.getMembers().empty()) {
+			if (chanIt->second.getMembers().empty())
+			{
 				_channels.erase(chanIt);
 				break;
 			}
 		}
 	}
-
-	// Remove from event loop
-	_eventLoop.removeFd(fd);
-
-	// Close the socket
-	close(fd);
-
-	// Remove from clients map
-	_clients.erase(fd);
-
+	_eventLoop.removeFd(fd); // Remove from event loop
+	close(fd); // Close the socket
+	_clients.erase(fd); // Remove from clients map
 	std::cout << "Disconnected client fd=" << fd << std::endl;
 }
 
@@ -235,39 +226,32 @@ void Server::handleQuit(int fd, std::istringstream& iss)
 		}
 	}
 
-	// Send quit message to all channels the user is in
 	Client& client = _clients[fd];
-	if (client.isRegistered()) {
+	if (client.isRegistered())
+	{
 		std::string quitMsg = ":" + client.getNickname() + "!" +
 							 client.getUsername() + "@" + client.getHostname() + " QUIT :" + reason + "\r\n";
-
-		// Broadcast to all channels user was in
-		broadcastQuitToChannels(fd, quitMsg);
+		broadcastQuitToChannels(fd, quitMsg);//to all channels user was in
 	}
-
-	// Close the connection
 	disconnectClient(fd);
 }
 
 void Server::broadcastQuitToChannels(int fd, const std::string& quitMsg)
 {
-	// Iterate through all channels to find ones the user was in
-	for (std::map<std::string, Channel>::iterator chanIt = _channels.begin();
+	for (std::map<std::string, Channel>::iterator chanIt = _channels.begin();//find channels user was in
 		 chanIt != _channels.end(); ++chanIt)
 	{
 		Channel& channel = chanIt->second;
-
-		// If the user was in this channel, broadcast quit message to all other members
-		if (channel.hasClient(fd)) {
+		if (channel.hasClient(fd))
+		{
 			const std::map<int, bool>& members = channel.getMembers();
 
 			for (std::map<int, bool>::const_iterator memberIt = members.begin();
 				 memberIt != members.end(); ++memberIt)
 			{
 				int memberFd = memberIt->first;
-
-				// Don't send quit message to the user who is quitting
-				if (memberFd != fd) {
+				if (memberFd != fd)// not to the user who quit
+				{
 					sendMsg(memberFd, quitMsg);
 				}
 			}
