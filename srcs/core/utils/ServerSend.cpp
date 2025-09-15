@@ -8,14 +8,24 @@ void Server::sendMsg(int fd, const std::string& message)
 		msg.resize(510);
 		msg += "\r\n";
 	}
+	
 	ssize_t sent = send(fd, msg.c_str(), msg.size(), 0);
 	if (sent == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			// Output buffer full — either drop or enqueue for retry
+			// Client is suspended or output buffer full - drop message
+			// This prevents server from hanging and avoids memory leaks
+			std::cout << "Dropped message to fd " << fd << " (client suspended/buffer full)" << std::endl;
 			return;
 		}
-		std::cerr << "Failed to send to fd " << fd << ": " << strerror(errno) << std::endl;//close socket?
+		// Other errors (connection lost, etc.)
+		std::cerr << "Failed to send to fd " << fd << ": " << strerror(errno) << std::endl;
+		// Note: Could call disconnectClient(fd) here for serious errors
+	}
+	else if (sent < (ssize_t)msg.size())
+	{
+		// Partial send - for simplicity, we'll drop the remainder
+		std::cout << "Partial send to fd " << fd << " (" << sent << "/" << msg.size() << " bytes) - dropping remainder" << std::endl;
 	}
 }
 

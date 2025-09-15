@@ -8,17 +8,21 @@ for i in {1..50}; do
 done
 wait
 
-So far I tested:
-- malformed messages ( test_malformed.sh file and manual testing)
-- buffer limits/long line > 510
-- incomplete messages (fix with incomplete user message - it was accepting and sending welcome message without the real name after colon)
-- registration, buffer limits, basic channel ops
-- if the nickname isn't set and is empty, it is not shown, which is according to the protocol
-- fixed duplicate JOIN and other messages
-- 366 END OF NAMES goes only to the joiner fixed
+PRIVMSG <nick1,nick2,#channel> :<message>    //no spaces allowed in between
+PRIVMSG <nick1> :<message>
+PRIVMSG <#channel> :<message>
+PRIVMSG <nick1,nick2> :<message>
 
-Dasha:
-- mode #chan +l 0 - set to return an error. + added overflowcheck. only numbers from 1 to INT_MAX are acceptable
+MODE #channel → show what modes you have on
+MODE +o → give operator
+MODE #channel +o <nick>
+MODE #channel -o <nick>
+
+MODE #channel +l <number>
+MODE +l → set user limit
+
+MODE #channel +k <key>
+MODE +k → set password
 
 
 
