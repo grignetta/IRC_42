@@ -14,7 +14,8 @@ void PollEventLoop::setup(int serverFd)
 	return poll(&_pollFds[0], _pollFds.size(), -1);
 }*/
 
-std::vector<int> PollEventLoop::wait() {
+std::vector<int> PollEventLoop::wait()
+{
 	int n = ::poll(_pollFds.data(), _pollFds.size(), -1);
 	if (n < 0)
 		throw std::runtime_error(std::string("poll() failed: ") + strerror(errno));
