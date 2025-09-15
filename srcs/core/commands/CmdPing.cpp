@@ -1,5 +1,5 @@
 #include "Server.hpp"
-
+/*
 void Server::handlePing(int fd, std::istringstream& iss)
 {
 	std::string target;
@@ -13,4 +13,4 @@ void Server::handlePing(int fd, std::istringstream& iss)
 
 	std::string response = ":ircserv PONG " + target + "\r\n";
 	sendMsg(fd, response);
-}
+}*/
