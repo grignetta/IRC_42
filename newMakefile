@@ -1,0 +1,82 @@
+# IRC Server Makefile - Explicit file listing
+EXECUTABLE = ircserv
+SRC_DIR = ./srcs
+OBJ_DIR = ./obj
+INC_DIR = ./includes
+
+# All header files explicitly listed
+INCLUDES = $(INC_DIR)/core/Server.hpp \
+           $(INC_DIR)/core/Client.hpp \
+           $(INC_DIR)/core/Channel.hpp \
+           $(INC_DIR)/network/IEventLoop.hpp \
+           $(INC_DIR)/network/EpollLoop.hpp \
+           $(INC_DIR)/network/PollLoop.hpp \
+           $(INC_DIR)/network/Socket.hpp \
+           $(INC_DIR)/utils/Signals.hpp \
+           $(INC_DIR)/exception/Exception.hpp
+
+# All source files explicitly listed
+SRCS = $(SRC_DIR)/main.cpp \
+       $(SRC_DIR)/core/Server.cpp \
+       $(SRC_DIR)/core/Client.cpp \
+       $(SRC_DIR)/core/Channel.cpp \
+       $(SRC_DIR)/core/commands/CmdJoin.cpp \
+       $(SRC_DIR)/core/commands/CmdPart.cpp \
+       $(SRC_DIR)/core/commands/CmdPrivMsg.cpp \
+       $(SRC_DIR)/core/commands/CmdKick.cpp \
+       $(SRC_DIR)/core/commands/CmdInvite.cpp \
+       $(SRC_DIR)/core/commands/CmdTopic.cpp \
+       $(SRC_DIR)/core/commands/CmdMode.cpp \
+       $(SRC_DIR)/core/commands/CmdPing.cpp \
+       $(SRC_DIR)/core/registration/CmdPass.cpp \
+       $(SRC_DIR)/core/registration/CmdNick.cpp \
+       $(SRC_DIR)/core/registration/CmdUser.cpp \
+       $(SRC_DIR)/core/registration/Registration.cpp \
+       $(SRC_DIR)/core/utils/ServerSend.cpp \
+       $(SRC_DIR)/core/utils/ChannelUtils.cpp \
+       $(SRC_DIR)/core/utils/ParseTrailing.cpp \
+       $(SRC_DIR)/core/utils/LookUps.cpp \
+       $(SRC_DIR)/network/EpollLoop.cpp \
+       $(SRC_DIR)/network/PollLoop.cpp \
+       $(SRC_DIR)/network/Socket.cpp \
+       $(SRC_DIR)/utils/Signals.cpp \
+       $(SRC_DIR)/utils/Overflow.cpp \
+       $(SRC_DIR)/utils/Controls.cpp
+
+
+OBJ = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+DEP = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.d)
+
+CFLAGS := -Wall -Wextra -Werror -I$(INC_DIR) -I$(INC_DIR)/core -I$(INC_DIR)/network -I$(INC_DIR)/utils -I$(INC_DIR)/exception -I$(INC_DIR)/commands -I$(INC_DIR)/messaging -std=c++98
+
+RM := rm -f
+
+CC := c++
+
+
+MAKEFLAGS += --no-print-directory
+
+
+all: $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJ)
+	$(CC) $(OBJ) -o $@
+
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	mkdir -p $(@D)
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
+
+clean:
+	rm -rf $(OBJ_DIR)
+	$(RM) $(OBJ)
+
+fclean: clean
+	rm -rf $(OBJ_DIR)
+	$(RM) $(EXECUTABLE)
+
+re: fclean all
+
+.PHONY: all clean fclean re
+
+-include $(DEP)
