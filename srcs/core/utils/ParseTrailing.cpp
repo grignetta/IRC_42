@@ -12,7 +12,7 @@ std::string  Server::parseTrailing(std::istream& iss)
 		return "";
 
 	if (trailing.find(' ') != std::string::npos && trailing[0] != ':')
-			throw std::runtime_error("Missing ':' before trailing parameter with spaces");//not sure if needed //dtmcomment: IT IS NEEDED FOR PRIVMSG AFTER colon the message comes, if no colon error
+			throw std::runtime_error("Missing ':' before trailing parameter with spaces");
 	// If colon is present, remove it
 	if (trailing[0] == ':')
 	{

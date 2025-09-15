@@ -37,7 +37,7 @@ bool Channel::isOperator(int fd) const
 
 void Channel::promoteOperator(int fd)
 {
-	if (hasClient(fd))//why check it?
+	if (hasClient(fd))
 		_members[fd] = true;
 }
 
@@ -108,11 +108,6 @@ void Channel::inviteClient(int fd) {
 
 bool Channel::isInvited(int fd) const {
 	return _invited.count(fd) > 0;
-}
-
-void Channel::usedInvite(int fd)
-{
-	_invited.erase(fd);
 }
 
 bool Channel::isValidName(const std::string& name)

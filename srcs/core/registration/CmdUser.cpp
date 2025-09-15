@@ -38,7 +38,7 @@ void Server::handleUser(int fd, std::istringstream& iss)
 	if (!realname.empty() && realname[0] == ':')
 	{
 		realname.erase(0, 1);
-		while (!realname.empty() && realname[0] == ' ') //can this happen?
+		while (!realname.empty() && realname[0] == ' ')
 			realname.erase(0, 1);
 	}
 	else if (!realname.empty())
@@ -46,7 +46,8 @@ void Server::handleUser(int fd, std::istringstream& iss)
 		sendNumeric(fd, 461, "*", "USER :Not enough parameters (realname must be prefixed with ':')");
 		return;
 	}
-	if (realname.empty()) { //check again for empty after removing trailing spaces
+	if (realname.empty())
+	{
 		sendNumeric(fd, 461, "*", "USER :Not enough parameters");
 		return;
 	}
@@ -56,7 +57,6 @@ void Server::handleUser(int fd, std::istringstream& iss)
 		sendNumeric(fd, 462, client.getNickname(), ":You may not reregister"); // ERR_ALREADYREGISTERED
 		return;
 	}
-	// ADD username control USERLEN
 	if (!client.setUsername(username)) {
 		sendNumeric(fd, 432, username, ":Invalid username");
 		return;
@@ -65,10 +65,5 @@ void Server::handleUser(int fd, std::istringstream& iss)
 		sendNumeric(fd, 432, realname, ":Realname too long");
 		return;
 	}
-	//I did this Change here and in NICK because my registeration was always giving an error
-	// client.incrementRegisterNickUserNames(1);
-	// if (client.getRegisterNickUserNames() == 2)
-	// 	client.setRegistered(true);
-	// optional: client.setRealname(realname); // if you add realname field
 	checkRegistration(client);
 }

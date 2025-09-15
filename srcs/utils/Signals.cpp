@@ -4,7 +4,7 @@ volatile sig_atomic_t g_signal = 0;
 
 void handleSignal(int signum)
 {
-	(void) signum;// Probably use later
+	(void) signum;
 	g_signal = 1; 
 }
 

@@ -7,7 +7,7 @@ bool controlPort(char* argv)
 	{
 		std::cerr << "Invalid port: must be 1–65535\n";
 		return false;
-	}   
+	}
 	int port = std::atoi(portStr.c_str());
 	if (port < 1 || port > 65535)
 	{
@@ -19,15 +19,15 @@ bool controlPort(char* argv)
 
 bool controlPassword(std::string& password)
 {
-    if (password.empty() || password.length() > 64)
-        return false;
+	if (password.empty() || password.length() > 64)
+		return false;
 
-    for (size_t i = 0; i < password.size(); ++i)
+	for (size_t i = 0; i < password.size(); ++i)
 	{
-        if (std::isspace(static_cast<unsigned char>(password[i])))
+		if (std::isspace(static_cast<unsigned char>(password[i])))
 		{
-            return false;
-        }
-    }
-    return true;
+			return false;
+		}
+	}
+	return true;
 }

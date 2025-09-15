@@ -15,7 +15,7 @@ void Server::sendMsg(int fd, const std::string& message)
 			// Output buffer full — either drop or enqueue for retry
 			return;
 		}
-		std::cerr << "Failed to send to fd " << fd << ": " << strerror(errno) << std::endl;//close socket?
+		std::cerr << "Failed to send to fd " << fd << ": " << strerror(errno) << std::endl;
 	}
 }
 

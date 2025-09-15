@@ -43,42 +43,42 @@ void Server::handleMode(int fd, std::istringstream& iss)
 
 void Server::sendChannelModeIs(int fd, const Channel& ch)
 {
-    std::string letters;   // COLLECT i,t,k,l here  LEeading will be added '+')
-    std::string params;
+	std::string letters;   // COLLECT i,t,k,l here  LEeading will be added '+')
+	std::string params;
 
-    if (ch.isInviteOnly())
-        letters += "i";
-    if (ch.isTopicRestricted())
-        letters += "t";
-    if (!ch.getKey().empty()) {
-        letters += "k";
-        params += " " + ch.getKey();
-    }
-    if (ch.getUserLimit() > 0) {
-        std::ostringstream lim; lim << ch.getUserLimit();
-        letters += "l";
-        params += " " + lim.str();
-    }
+	if (ch.isInviteOnly())
+		letters += "i";
+	if (ch.isTopicRestricted())
+		letters += "t";
+	if (!ch.getKey().empty()) {
+		letters += "k";
+		params += " " + ch.getKey();
+	}
+	if (ch.getUserLimit() > 0) {
+		std::ostringstream lim; lim << ch.getUserLimit();
+		letters += "l";
+		params += " " + lim.str();
+	}
 
-    // assemble final payload
-    std::string payload;
-    if (!letters.empty())
-        payload = "+" + letters + params;  // For exp. "+itkl key 20" adding leading +
-    else
-        payload = "";                      // no modes active
+	// assemble final payload
+	std::string payload;
+	if (!letters.empty())
+		payload = "+" + letters + params;  // For exp. "+itkl key 20" adding leading +
+	else
+		payload = "";                      // no modes active
 
-    sendNumeric(fd, 324, ch.getName(), payload);
+	sendNumeric(fd, 324, ch.getName(), payload);
 }
 
 
 int Server::getClientFdWithNick(const std::string& nick) const
 {
-    for (std::map<int, Client>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
-    {
-        if (it->second.getNickname() == nick)
-            return it->first; // FD is the map key
-    }
-    return -1; // not found
+	for (std::map<int, Client>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		if (it->second.getNickname() == nick)
+			return it->first; // FD is the map key
+	}
+	return -1; // not found
 }
 
 void Server::applyChannelModes(int fd,
@@ -141,33 +141,33 @@ void Server::applyChannelModes(int fd,
 				int targetFd = getClientFdWithNick(params[paramIndex]);
 				if (targetFd == -1) { sendNumeric(fd, 401, params[paramIndex], ":No such nick/channel"); paramIndex++; break; } 
 				if (!ch.hasClient(targetFd))
-    			{
-    			    sendNumeric(fd, 441, params[paramIndex] + " " + ch.getName(), ":They aren't on that channel");
-    			    paramIndex++;
-    			    break;
-    			}
+				{
+					sendNumeric(fd, 441, params[paramIndex] + " " + ch.getName(), ":They aren't on that channel");
+					paramIndex++;
+					break;
+				}
 				bool changed = false;
-    			if (plusMode)
-    			{
-    			    // avoid duplicate +o
-    			    if (!ch.isOperator(targetFd))
-    			    {
-    			        ch.promoteOperator(targetFd);
-    			        changed = true;
-    			    }
-    			}
-    			else
-    			{
-    			    // avoid duplicate -o
-    			    if (ch.isOperator(targetFd) && ch.countOperators() > 1)
-    			    {
-    			        ch.demoteOperator(targetFd);
-    			        changed = true;
-    			    }
-    			}
+				if (plusMode)
+				{
+					// avoid duplicate +o
+					if (!ch.isOperator(targetFd))
+					{
+						ch.promoteOperator(targetFd);
+						changed = true;
+					}
+				}
+				else
+				{
+					// avoid duplicate -o
+					if (ch.isOperator(targetFd) && ch.countOperators() > 1)
+					{
+						ch.demoteOperator(targetFd);
+						changed = true;
+					}
+				}
 
-		    	if (changed)
-    			    modesAdded += 'o';
+				if (changed)
+					modesAdded += 'o';
 				paramIndex++;
 			} break;
 			case 'k':
@@ -197,10 +197,10 @@ void Server::applyChannelModes(int fd,
 				if (plusMode)
 				{
 					if (paramIndex >= params.size())
-                    {
-                        sendNumeric(fd, 461, "MODE", ":Not enough parameters");
-                        break;
-                    }
+					{
+						sendNumeric(fd, 461, "MODE", ":Not enough parameters");
+						break;
+					}
 					//int limit = std::atoi(params[paramIndex].c_str());
 					int limit;
 					if (!safeParseInt(params[paramIndex], limit) || limit < 1)
@@ -235,57 +235,25 @@ void Server::applyChannelModes(int fd,
 	{
 		Client& client = _clients[fd];
 		std::string announce = ":" + client.getNickname() + "!" + client.getUsername() + "@" + client.getHostname() +
-		                      " MODE " + ch.getName() + " " + modesAdded;
+							  " MODE " + ch.getName() + " " + modesAdded;
 
 		// If you have params that should follow (key, limit, nick, etc.)
 		for (size_t i = 0; i < params.size(); ++i)
-		    announce += " " + params[i];
+			announce += " " + params[i];
 		announce += "\n";
 		// Broadcast to the whole channel, not just the user
 		broadcastToChannel(ch, announce);
 	}
 }
 
-// static void sendMessage(int fd, std::string line)
-// {
-//     // Ensure CRLF exactly once
-//     if (line.size() < 2 || line.compare(line.size()-2, 2, "\r\n") != 0)
-//         line += "\r\n";
-
-//     // IRC hard limit: 512 bytes including CRLF.
-//     if (line.size() > 512)
-//         line.resize(512);
-
-//     const char* buf = line.c_str();
-//     size_t left = line.size();
-
-//     while (left > 0)
-//     {
-//         ssize_t n = send(fd, buf, left, MSG_NOSIGNAL); // avoid SIGPIPE
-//         if (n > 0) { buf += n; left -= static_cast<size_t>(n); continue; }
-
-//         if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
-//         {
-//             // Non-blocking socket is full — enqueue 'line.substr(line.size()-left)'
-//             // to an outgoing buffer and try again later in your event loop.
-//             break;
-//         }
-        // Other errors
-//        std::cerr << "sendMsg error to fd " << fd << ": " << strerror(errno);
-//        break; // optionally close fd on fatal errors
-//    }
-	//what
-//}
-
 void Server::broadcastToChannel(const Channel& ch, const std::string& message)
 {
-    for (std::map<int, bool>::const_iterator it = ch.getMembers().begin(); it != ch.getMembers().end(); ++it)
-    {
-        int memberFd = it->first;
+	for (std::map<int, bool>::const_iterator it = ch.getMembers().begin(); it != ch.getMembers().end(); ++it)
+	{
+		int memberFd = it->first;
 		sendMsg(memberFd, message);
-        //sendMessage(memberFd, message); 
 		//std::cout << _clients[memberFd].getNickname() << std::endl;
-    }
+	}
 }
 
 // // return true if the change was actually applied; false if rejected (after sending an error)

@@ -18,14 +18,10 @@ class Channel
 		void							promoteOperator(int fd);
 		void							demoteOperator(int fd);
 		
-		const std::map<int, bool>&		getMembers() const;// is it nessary?
-		
-		
+		const std::map<int, bool>&		getMembers() const;
 		
 		void							setInviteOnly(bool value);
 		bool							isInviteOnly() const;
-		void							usedInvite(int fd);
-		
 		
 		/// getters ////
 		int								getClientCount() const;
@@ -47,25 +43,21 @@ class Channel
 		bool							isFull() const;
 		bool							isInvited(int fd) const;
 
-
 		void inviteClient(int fd);
 		int countOperators() const;
 
 		static bool isValidName(const std::string& name);
 		const std::string& getName() const;
 
-
 	private:
 		std::string _name;
 		std::string _topic;
 		std::map<int, bool> _members;// bool for ops
-		bool _inviteOnly __attribute__((unused));
+		bool _inviteOnly;
 		bool _topicRestricted;
 		std::string _key;
-		int _userLimit __attribute__((unused));
-		std::set<int> _invited;       // For +i mode
-
-	// Methods: addClient(), removeClient(), isOperator(), etc.
+		int _userLimit;
+		std::set<int> _invited;
 };
 
 #endif

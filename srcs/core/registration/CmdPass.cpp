@@ -6,14 +6,14 @@ void Server::handlePass(int fd, std::istringstream& iss)
 	iss >> password;
 
 	Client& client = _clients[fd];
-	if (client.passApv())  // Add a flag in Client class to track this
+	if (client.passApv())
 	{
 		sendNumeric(fd, 462, client.getNickname(), ":You may not reregister"); // ERR_ALREADYREGISTERED
 		return;
 	}
 	if (password.empty())
 	{
-		sendNumeric(fd, 461, "*", "PASS :Not enough parameters"); // ERR_NEEDMOREPARAMS "<client> <command> :Not enough parameters" send error differently?
+		sendNumeric(fd, 461, "*", "PASS :Not enough parameters"); // ERR_NEEDMOREPARAMS
 		return;
 	}
 	if (password != _password)
@@ -21,5 +21,5 @@ void Server::handlePass(int fd, std::istringstream& iss)
 		sendNumeric(fd, 464, "*", "Password incorrect"); // ERR_PASSWDMISMATCH
 		return;
 	}
-	client.setPassApv(true); // New method in Client
+	client.setPassApv(true);
 }
