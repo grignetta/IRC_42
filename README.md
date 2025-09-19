@@ -4,7 +4,7 @@ An IRC server implementation in **C++98**, compatible with both **Linux** (epoll
 It supports multiple clients, authentication, nick/user registration, channel management, private messaging, and channel operator commands.
 Written in a group together with https://github.com/michaela811 and https://github.com/denizcaglarcingoz.
 
-*Project is compliant with the subject requirements for **42 ft_irc** and with IRC Protocol 1993*
+*Project is compliant with the subject requirements for **42school ft_irc** and with IRC Protocol 1993*
 
 ---
 
